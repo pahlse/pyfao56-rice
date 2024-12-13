@@ -6,7 +6,7 @@ Read the gist [here](./Rice_README.md)
 # pyfao56
 A Python implementation of the FAO-56 dual crop coefficient approach for crop water use estimation and irrigation scheduling
 
-The pyfao56 Python package facilitates FAO-56 computations of daily soil water balance using the dual crop coefficient method to estimate crop evapotranspiration (ET).
+The pyfao56 python package facilitates fao-56 computations of daily soil water balance using the dual crop coefficient method to estimate crop evapotranspiration (et).
 
 The FAO-56 method is described in the following documentation:
 [Allen, R. G., Pereira, L. S., Raes, D., Smith, M., 1998.  FAO Irrigation and Drainage Paper No. 56. Crop Evapotranspiration: Guidelines for Computing Crop Water Requirements. Food and Agriculture Organization of the United Nations, Rome Italy.](http://www.fao.org/3/x0490e/x0490e00.htm)
