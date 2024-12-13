@@ -158,7 +158,8 @@ The following additions to `model.py` are propoesd:
 ## To-Do's 
 
 - What happens to `Ks`????
-- Write a `landprep.py` script containing its own class and modules.
+- Write a `landprep.py` script containing its own class and modules for initiating puddle conditions.
 - Calculate `runoff` from excess rain and irrigation based on bund hight
+- Resolve autoirrigation bug for `madDs` and `madVp`
 - Add `if clauses` that paddy can be puddled but not ponded or ponded but not
   puddled.
