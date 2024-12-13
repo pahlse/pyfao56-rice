@@ -134,7 +134,7 @@ class AutoIrrigate:
         self.comment = 'Comments: ' + comment.strip()
         self.tmstmp = datetime.datetime.now()
         self.cnames = ['start','end','alre','idow','fpdep','fpday',
-                       'fpact','mad','madDr','ksc','dsli','dsle','evnt',
+                       'fpact','mad','madDr','madDs','madVp','wdpth','ksc','dsli','dsle','evnt',
                        'icon','itdr','itfdr','ietrd','ietri','ietre',
                        'ettyp','iper','ieff','imin','imax','fw']
         self.aidata = pd.DataFrame(columns=self.cnames)
@@ -272,11 +272,11 @@ class AutoIrrigate:
 
     def addset(self,start,end,alre=True,idow='0123456',fpdep=25.,
                fpday=3,fpact='proceed',mad=float('NaN'),
-               madDr=float('NaN'),ksc=float('NaN'),dsli=float('NaN'),
-               dsle=float('NaN'),evnt=10.,icon=float('NaN'),
-               itdr=float('NaN'),itfdr=float('NaN'),ietrd=float('NaN'),
-               ietri=False,ietre=False,ettyp='ETcadj',iper=100.,
-               ieff=100.,imin=0.,imax=float('NaN'),fw=1.):
+               madDr=float('NaN'),madDs=float('NaN'),madVp=float('NaN'),wdpth=float('Nan'),
+               ksc=float('NaN'),dsli=float('NaN'),dsle=float('NaN'),evnt=10.,
+               icon=float('NaN'),itdr=float('NaN'),itfdr=float('NaN'),
+               ietrd=float('NaN'),ietri=False,ietre=False,ettyp='ETcadj',
+               iper=100.,ieff=100.,imin=0.,imax=float('NaN'),fw=1.):
         """Add a set of autoirrigation parameters to aidata
 
         Default parameter values are given below. Users should update
@@ -295,6 +295,9 @@ class AutoIrrigate:
         fpact : str    , optional, default='proceed'
         mad   : float  , optional, default=NaN
         madDr : float  , optional, default=NaN
+        madDs : float  , optional, default=NaN
+        madVp : float  , optional, default=NaN
+        wdpth : float  , optional, default=NaN
         ksc   : float  , optional, default=NaN
         dsli  : float  , optional, default=NaN
         dsle  : float  , optional, default=NaN
@@ -314,12 +317,34 @@ class AutoIrrigate:
         """
 
         i = len(self.aidata)
-        data = [str(start),str(end),bool(alre),str(idow),float(fpdep),
-                float(fpday),str(fpact),float(mad),float(madDr),
-                float(ksc),float(dsli),float(dsle),float(evnt),
-                float(icon),float(itdr),float(itfdr),float(ietrd),
-                bool(ietri),bool(ietre),str(ettyp),float(iper),
-                float(ieff),float(imin),float(imax),float(fw)]
+        data = [str(start),
+                str(end),
+                bool(alre),
+                str(idow),
+                float(fpdep),
+                float(fpday),
+                str(fpact),
+                float(mad),
+                float(madDr),
+                float(madDs),
+                float(madVp),
+                float(wdpth),
+                float(ksc),
+                float(dsli),
+                float(dsle),
+                float(evnt),
+                float(icon),
+                float(itdr),
+                float(itfdr),
+                float(ietrd),
+                bool(ietri),
+                bool(ietre),
+                str(ettyp),
+                float(iper),
+                float(ieff),
+                float(imin),
+                float(imax),
+                float(fw)]
         self.aidata.loc[i] = data
 
     def removeset(self,index):

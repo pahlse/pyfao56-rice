@@ -164,7 +164,7 @@ class Model:
     """
 
     def __init__(self, start, end, par, wth, irr=None, autoirr=None,
-                 sol=None, upd=None, ponded=False, paddy=False, roff=False, 
+                 sol=None, upd=None, ponded=False, paddy=False, roff=False,  #NOTE: 'ponded' functionality not yet implemented
                  cons_p=False, aq_Ks=False, comment=''):
         """Initialize the Model class attributes.
 
@@ -237,68 +237,65 @@ class Model:
         """Represent the Model class variables as a string."""
 
         self.tmstmp = datetime.datetime.now()
-        timestamp = self.tmstmp.strftime('%Y-%m-%d %H:%M:%S')
-        sdate = self.startDate.strftime('%Y-%m-%d')
-        edate = self.endDate.strftime('%Y-%m-%d')
+        timestamp = self.tmstmp.strftime('%m/%d/%Y %H:%M:%S')
+        sdate = self.startDate.strftime('%m/%d/%Y')
+        edate = self.endDate.strftime('%m/%d/%Y')
         if self.sol is None:
             solmthd = 'D - Default FAO-56 homogenous soil bucket ' \
                       'approach'
         else:
             solmthd = 'L - Fort Collins ARS stratified soil layers ' \
                       'approach'
-
+        fmts = {'Year':'{:4s}'.format,'DOY':'{:3s}'.format,
+                'DOW':'{:3s}'.format,'Date':'{:8s}'.format,
+                'ETref':'{:6.3f}'.format,'tKcb':'{:5.3f}'.format,
+                'Kcb':'{:5.3f}'.format,'h':'{:5.3f}'.format,
+                'Kcmax':'{:5.3f}'.format,'fc':'{:5.3f}'.format,
+                'fw':'{:5.3f}'.format,'few':'{:5.3f}'.format,
+                'De':'{:7.3f}'.format,'Kr':'{:5.3f}'.format,
+                'Ke':'{:5.3f}'.format,'E':'{:6.3f}'.format,
+                'DPe':'{:7.3f}'.format,'Kc':'{:5.3f}'.format,
+                'ETc':'{:6.3f}'.format,'TAW':'{:7.3f}'.format,
+                'TAWrmax':'{:7.3f}'.format,'TAWb':'{:7.3f}'.format,
+                'Zr':'{:5.3f}'.format,'p':'{:5.3f}'.format,
+                'RAW':'{:7.3f}'.format,'Ks':'{:5.3f}'.format,
+                'Kcadj':'{:5.3f}'.format,'ETcadj':'{:6.3f}'.format,
+                'T':'{:6.3f}'.format,'DP':'{:7.3f}'.format,
+                'Dinc':'{:7.3f}'.format,'Dr':'{:7.3f}'.format,
+                'fDr':'{:7.3f}'.format,'Drmax':'{:7.3f}'.format,
+                'fDrmax':'{:7.3f}'.format,'Db':'{:7.3f}'.format,
+                'fDb':'{:7.3f}'.format,'Irrig':'{:7.3f}'.format,
+                'IrrLoss':'{:7.3f}'.format,'Rain':'{:7.3f}'.format,
+                'Runoff':'{:7.3f}'.format}
         ast='*'*72
-
-        header = (
-            'Date       Day   ETref   ETc  ETcadj     T      E   Rain  Irrig  IrrLoss'
-            '  Runoff    DP    TAW    DAW    RAW    Veff    Vp     Vs     Vr    '
-            'Dr     Ds\n'
-        )
-
-        fmts = {
-              'Date': '{:12s}'.format,
-              'Day': '{:3d}'.format,
-              'ETref': '{:7.3f}'.format,
-              'ETc': '{:7.3f}'.format,
-              'ETcadj': '{:7.3f}'.format,
-              'T': '{:7.3f}'.format,
-              'E': '{:7.3f}'.format,
-              'Rain': '{:7.3f}'.format,
-              'Irrig': '{:7.3f}'.format,
-              'IrrLoss': '{:7.3f}'.format,
-              'Runoff': '{:7.3f}'.format,
-              'DP': '{:7.3f}'.format,
-              'TAW': '{:7.3f}'.format,
-              'DAW': '{:7.3f}'.format,
-              'RAW': '{:7.3f}'.format,
-              'Veff': '{:7.3f}'.format,
-              'Vp': '{:7.3f}'.format,
-              'Vs': '{:7.3f}'.format,
-              'Vr': '{:7.3f}'.format,
-              'Dr': '{:7.3f}'.format,
-              'Ds': '{:7.3f}'.format,
-          }
-
-        s = (
-          f'{ast}\n'
-          'pyfao56: FAO-56 Evapotranspiration in Python\n'
-          'Output Data\n'
-          f'Timestamp: {timestamp}\n'
-          f'Simulation start date: {sdate}\n'
-          f'Simulation end date: {edate}\n'
-          f'Soil method: {solmthd}\n'
-          f'{ast}\n'
-          f'{self.comment}\n'
-          f'{ast}\n'
-          f'{header}'
-        )
-
+        s = ('{:s}\n'
+             'pyfao56: FAO-56 Evapotranspiration in Python\n'
+             'Output Data\n'
+             'Timestamp: {:s}\n'
+             'Simulation start date: {:s}\n'
+             'Simulation end date: {:s}\n'
+             'Soil method: {:s}\n'
+             '{:s}\n'
+             '{:s}\n'
+             '{:s}\n'
+             'Year-DOY  Year  DOY  DOW      Date  ETref  tKcb   Kcb'
+             '     h Kcmax    fc    fw   few      De    Kr    Ke      E'
+             '     DPe    Kc    ETc     TAW TAWrmax    TAWb    Zr     p'
+             '     RAW    Ks Kcadj ETcadj      T      DP    Dinc'
+             '      Dr     fDr   Drmax  fDrmax      Db     fDb'
+             '   Irrig IrrLoss    Rain  Runoff  Year  DOY  DOW'
+             '      Date\n'
+             ).format(ast,
+                      timestamp,
+                      sdate,
+                      edate,
+                      solmthd,
+                      ast,
+                      self.comment,
+                      ast)
         if not self.odata.empty:
             s += self.odata.to_string(header=False,formatters=fmts)
-
         return s
-
-    
 
     def savefile(self,filepath='pyfao56.out'):
         """Save pyfao56 output data to a file.
@@ -323,7 +320,18 @@ class Model:
             f.close()
 
     def savesummary(self, filepath='pyfao56_summary.out'):
-        """Save a summary of selected keys from odata as a formatted string."""
+        """Save a summary of selected keys from odata as a formatted string.
+
+        Parameters
+        ----------
+        filepath : str, optional
+            Any valid filepath string (default = 'pyfao56_summary.csv')
+
+        Raises
+        ------
+        FileNotFoundError
+            If filepath is not found.
+        """
 
         self.tmstmp = datetime.datetime.now()
         timestamp = self.tmstmp.strftime('%Y-%m-%d %H:%M:%S')
@@ -515,7 +523,7 @@ class Model:
         io.Ksat    = self.par.Ksat
         io.Zrini   = self.par.Zrini
         io.Zrmax   = self.par.Zrmax
-        io.Bundh   = self.par.Bundh
+        io.Bundh   = self.par.Bundh * 1000
         io.pbase   = self.par.pbase
         io.Ze      = self.par.Ze
         io.REW     = self.par.REW
@@ -537,10 +545,12 @@ class Model:
             io.Db = -99.999
             io.TAWb = -99.999
 
-# --- Initial Settings ---------------------------------
+            # --- Initial Rice Settings ---------------------------------
             if self.ponded:
                 #Initial root zone drainable available water (DAW, mm)
                 io.DAW = 1000. * (io.thetaS - io.thetaFC) * io.Zrini
+
+                io.DP = 0 #NOTE: This is a placeholder; needs work.
 
                 #Initial effective available moisture (Vtot, mm)
                 #NOTE: This accounts for all the water in the paddy and can exceed 
@@ -552,6 +562,8 @@ class Model:
                 io.Vs = sorted([0.0, io.Veff - io.Vp - io.TAW, io.DAW])[1]
                 # Initial residual soil moisture (Vr, mm)
                 io.Vr = sorted([0.0, io.Veff - io.Vp - io.Vs, io.TAW])[1]
+
+                io.Ds = sorted([0.0, io.DAW - io.Vp, io.Bundh])[1]
 
         else:
             io.solmthd = 'L' #Layered soil profile from SoilProfile
@@ -667,6 +679,7 @@ class Model:
                     dnow = tcurrent.strftime('%w')
                     if dnow not in self.autoirr.aidata.loc[i,'idow']:
                         continue
+
                     #Evaluate forecasted precipitation condition
                     fpdep = self.autoirr.aidata.loc[i,'fpdep']
                     fpday = int(self.autoirr.aidata.loc[i,'fpday'])
@@ -684,15 +697,16 @@ class Model:
                             reduceirr = fcrain
                         elif fpact not in ['proceed']:
                             continue
+                    
                     #Evaluate management allowed depletion (mm/mm)
                     if io.fDr <= self.autoirr.aidata.loc[i,'mad']:
                         continue
-                    #Evaluate management allowed depletion (mm)
                     if io.Dr <= self.autoirr.aidata.loc[i,'madDr']:
                         continue
                     #Evaluate critical Ks
                     if io.Ks >= self.autoirr.aidata.loc[i,'ksc']:
                         continue
+
                     #Evaluate days since last irrigation (dsli)
                     idays = self.odata[self.odata['Irrig']>0.]
                     idays = pd.to_datetime(idays.index,format='%Y-%j')
@@ -702,6 +716,7 @@ class Model:
                         dsli = ((tcurrent-self.startDate).days)+1
                     if dsli < self.autoirr.aidata.loc[i,'dsli']:
                         continue
+                    
                     #Evaluate days since last watering event
                     evnt = self.autoirr.aidata.loc[i,'evnt']
                     edays = self.odata[(self.odata['Irrig']-
@@ -719,7 +734,20 @@ class Model:
                     #All conditions were met, need to autoirrigate
                     #Default rate is root-zone soil water depletion (Dr)
                     rate = max([0.0,io.Dr - reduceirr])
-                    # rate = max([0.0,io.Ds - reduceirr])
+
+#-------------------------------------------------------------------------
+                    #NOTE: This is not working as desird. Vp gets triggered, but rate 
+
+                    if io.Ds <= self.autoirr.aidata.loc[i,'madDs']:
+                        wdpth = self.autoirr.aidata.loc[i,'wdpth']
+                        rate = max([0.0, io.Dr + io.Ds + wdpth - reduceirr])
+                        continue
+
+                    if io.Vp >= self.autoirr.aidata.loc[i,'madVp']:
+                        wdpth = self.autoirr.aidata.loc[i,'wdpth']
+                        rate = max([0.0, io.Dr + io.Ds + wdpth - reduceirr])
+                        continue
+#-------------------------------------------------------------------------
 
                     #Alternatively, the default rate may be modified:
                     #Use a contant rate
@@ -812,6 +840,8 @@ class Model:
             doy = tcurrent.strftime('%j') #Day of Year
             dow = tcurrent.strftime('%a') #Day of Week
             dat = tcurrent.strftime('%Y-%m-%d') #Date yyyy-mm-dd
+
+            # --- NOTE: This is for me to understand what I'm working with ---#
             data = [
                 # Temporal Data
                 year,
@@ -850,14 +880,14 @@ class Model:
                 # Soil Water Balance
                 io.DP,
                 io.TAW,
-                io.DAW,           # DAW
-                io.RAW,           # RAW
-                io.Veff,          # Effective water in paddy system
-                io.Vp,            # Ponding depth
-                io.Vs,            # Saturation depth
-                io.Vr,            # Residual soil water
-                io.Ds,            # Ds
-                io.Dr,            # Dr
+                io.DAW,
+                io.RAW,
+                io.Veff,
+                io.Vp,
+                io.Vs,
+                io.Vr,
+                io.Ds,
+                io.Dr,
                 # L-variables
                 io.TAWrmax,
                 io.TAWb,
@@ -975,6 +1005,9 @@ class Model:
 
         # Surface runoff (runoff, mm)
         io.runoff = 0.0
+        runoff_irr = 0.0
+        runoff_rain = 0.0
+
         if io.roff is True:
             #Method per ASCE (2016) Eqs. 14-12 to 14-20, page 451-454
             CN1 = io.CN2/(2.281-0.01281*io.CN2) #ASCE (2016) Eq. 14-14
@@ -996,21 +1029,19 @@ class Model:
             else:
                 io.runoff = 0.0
 
-
-        #Naive implementation of runoff under ponding conditions
-        #Will definatly fail in edge cases; e.g. where irrigation and 
-        #rain occur on the same day
-        runoff_irr = 0
-        runoff_rain = 0
-        if io.ponded is True:
-            #Irrigation runoff (mm)
-            if io.idep + io.Vp > io.Bundh:
-                runoff_irr = io.idep + io.Vp - io.Bundh
-                io.irrloss += runoff_irr
-            #Percipitation runoff (mm)
-            if io.rain + io.Vp > io.Bundh:
-                runoff_rain = io.rain + io.Vp - io.Bundh
-                io.runoff = runoff_rain
+#------------------------------------------------------------------------
+            #Naive implementation of runoff under ponding conditions
+            #Will definatly fail in edge cases; e.g. where irrigation and 
+            #rain occur on the same day. Definatly needs work!
+            if io.ponded is True:
+                #Irrigation runoff (mm)
+                if io.idep + io.Vp > io.Bundh:
+                    runoff_irr = io.idep + io.Vp - io.Bundh
+                    io.irrloss += runoff_irr
+                #Percipitation runoff (mm)
+                if io.rain + io.Vp > io.Bundh:
+                    runoff_rain = io.rain + io.Vp - io.Bundh
+                    io.runoff = runoff_rain
 
         #Effective irrigation (mm)
         effirr = max(0, io.idep - io.irrloss)
@@ -1020,6 +1051,7 @@ class Model:
         
         #Total Runoff (mm) accounting for irrigation and rain runoff
         io.runoff = runoff_irr + runoff_rain
+#------------------------------------------------------------------------
 
         #Fraction soil surface wetted (fw) - FAO-56 Table 20, page 149
         if io.idep > 0.0 and io.rain > 0.0:
@@ -1113,12 +1145,14 @@ class Model:
         if io.solmthd == 'D':
             if self.ponded:
                 
+                # Total soil moisture in puddle (Veff, mm)
+                Veff = io.Veff + effrain + effirr - io.ETcadj - io.DP
+                io.Veff = max([Veff, 0.0])
+
                 #Deep percolation (DP, mm) with max percolation being Ksat
                 #Boundary layer is considered at the root zone depth (Zr)
                 io.DP = sorted([0.0, io.Vs, io.Ksat])[1]
     
-                # Total soil moisture in puddle (Veff, mm)
-                io.Veff = io.Veff + effrain + effirr - io.ETcadj - io.DP
                 # Ponding depth (Vp, mm)
                 io.Vp = sorted([0.0, io.Veff - io.DAW - io.TAW, io.Bundh])[1]
                 # Saturation depth (Vs, mm)

@@ -1,9 +1,9 @@
 ************************************************************************
 pyfao56: FAO-56 Evapotranspiration in Python
 Parameter Data
-Timestamp: 12/13/2024 10:50:43
+Timestamp: 12/13/2024 17:12:51
 ************************************************************************
-Comments: 2018 Rice
+Comments: DSR Rice for CSSRI Karnal, 2018
 ************************************************************************
    0.9000 Kcbini, Kcb Initial (FAO-56 Table 17)
    1.4200 Kcbmid, Kcb Mid (FAO-56 Table 17)
@@ -15,10 +15,10 @@ Comments: 2018 Rice
    0.0500 hini, Plant Height Initial (m)
    1.1000 hmax, Plant Height Maximum (m) (FAO-56 Table 12)
    0.2373 thetaFC, Vol. Soil Water Content, Field Capacity (cm3/cm3)
-   0.1143 thetaWP, Vol. Soil Water Content, Wilting Point (cm3/cm3)
+   0.1142 thetaWP, Vol. Soil Water Content, Wilting Point (cm3/cm3)
    0.0655 theta0, Vol. Soil Water Content, Initial (cm3/cm3)
    0.3725 thetaS, Vol. Soil Water Content, Saturated (cm3/cm3)
-  44.9243 Ksat, Saturated Hyraulic Konductivity (mm/day)
+   3.4037 Ksat, Saturated Hyraulic Konductivity (mm/day)
    0.2000 Zrini, Rooting Depth Initial (m)
    0.6000 Zrmax, Rooting Depth Maximum (m) (FAO-56 Table 22)
    0.6000 pbase, Depletion Fraction (p) (FAO-56 Table 22)
