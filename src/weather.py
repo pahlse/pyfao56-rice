@@ -14,7 +14,7 @@ The weather.py module contains the following:
 """
 
 import pandas as pd
-from pyfao56 import refet
+from . import refet
 import datetime
 
 class Weather:
@@ -113,9 +113,9 @@ class Weather:
              '{:s}\n'
              '{:s}\n'
              '{:>12s} Reference crop - Short (\'S\') or Tall (\'T\')\n'
-             '{:12.7f} Weather station elevation (z) (m)\n'
-             '{:12.7f} Weather station latitude (decimal degrees)\n'
-             '{:12.7f} Wind speed measurement height (m)\n\n'
+             '{:11.6f} Weather station elevation (z) (m)\n'
+             '{:11.6f} Weather station latitude (decimal degrees)\n'
+             '{:11.6f} Wind speed measurement height (m)\n\n'
              'Daily weather data:\n'
              'Year-DOY'
              ).format(ast,timestamp,ast,self.comment,ast,self.rfcrp,
@@ -124,7 +124,7 @@ class Weather:
             s += '{:>7s}'.format(cname)
         s += '\n'
         if not self.wdata.empty:
-            s += self.wdata.to_string(header=False,na_rep='   NaN',
+            s += self.wdata.to_string(header=False,na_rep='  NaN',
                                       formatters=fmts)
         return s
 

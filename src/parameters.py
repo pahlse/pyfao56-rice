@@ -45,10 +45,18 @@ class Parameters:
         Volumetric Soil Water Content, Wilting Point (cm3/cm3)
     theta0 : float
         Volumetric Soil Water Content, Initial (cm3/cm3)
+    thetaS : float
+        Volumetric Soil Water Content, Saturated (cm3/cm3)
+    Ksat : loat
+        Saturated Hyraulic Konductivity (mm/d)
     Zrini : float
         Rooting Depth Initial (m)
     Zrmax : float
         Rooting Depth Maximum (m) (FAO-56 Table 22)
+    Bundh : float
+        Bund hight of paddy field (m);
+    Wdini : float
+        Initial water ponding depth (mm);
     pbase : float
         Depletion Fraction (p) (FAO-56 Table 22)
     Ze : float
@@ -72,9 +80,9 @@ class Parameters:
 
     def __init__(self, Kcbini=0.15, Kcbmid=1.10, Kcbend=0.50, Lini=25,
                  Ldev=50, Lmid=50, Lend=25, hini=0.010, hmax=1.20,
-                 thetaFC=0.250, thetaWP=0.100, theta0=0.100, Zrini=0.20,
-                 Zrmax=1.40, pbase=0.50, Ze=0.10, REW=8.0, CN2=70,
-                 comment=''):
+                 thetaFC=0.250, thetaWP=0.100, theta0=0.100, thetaS=0.33, 
+                 Ksat=42.0, Zrini=0.20, Zrmax=1.40, Bundh=0.0, Wdini=0.0,
+                 pbase=0.50, Ze=0.10, REW=8.0, CN2=70, comment=''):
         """Initialize the Parameters class attributes.
 
         Default parameter values are given below. Users should update
@@ -96,8 +104,12 @@ class Parameters:
         thetaFC : float, optional, default = 0.250
         thetaWP : float, optional, default = 0.100
         theta0  : float, optional, default = 0.100
+        thetaS  : float, optional, default = 0.330
+        Ksat    : float, optional, default = 42.00
         Zrini   : float, optional, default = 0.20
         Zrmax   : float, optional, default = 1.40
+        Bundh   : float, optional, default = 0.00
+        Wdini   : float, optional, default = 0.00
         pbase   : float, optional, default = 0.50
         Ze      : float, optional, default = 0.10
         REW     : float, optional, default = 8.0
@@ -117,8 +129,12 @@ class Parameters:
         self.thetaFC = thetaFC
         self.thetaWP = thetaWP
         self.theta0  = theta0
+        self.thetaS  = thetaS
+        self.Ksat    = Ksat
         self.Zrini   = Zrini
         self.Zrmax   = Zrmax
+        self.Bundh   = Bundh
+        self.Wdini   = Wdini
         self.pbase   = pbase
         self.Ze      = Ze
         self.REW     = REW
@@ -155,6 +171,10 @@ class Parameters:
            '(cm3/cm3)\n'
            '{:9.4f} theta0, Vol. Soil Water Content, Initial '
            '(cm3/cm3)\n'
+           '{:9.4f} thetaS, Vol. Soil Water Content, Saturated '
+           '(cm3/cm3)\n'
+           '{:9.4f} Ksat, Saturated Hyraulic Konductivity '
+           '(mm/day)\n'
            '{:9.4f} Zrini, Rooting Depth Initial (m)\n'
            '{:9.4f} Zrmax, Rooting Depth Maximum (m) '
            '(FAO-56 Table 22)\n'
@@ -168,8 +188,8 @@ class Parameters:
           ).format(ast,timestamp,ast,self.comment,ast,self.Kcbini,
                    self.Kcbmid,self.Kcbend,self.Lini,self.Ldev,
                    self.Lmid,self.Lend,self.hini,self.hmax,self.thetaFC,
-                   self.thetaWP,self.theta0,self.Zrini,self.Zrmax,
-                   self.pbase,self.Ze,self.REW,self.CN2)
+                   self.thetaWP,self.theta0,self.thetaS,self.Ksat,self.Zrini,
+                   self.Zrmax,self.pbase,self.Ze,self.REW,self.CN2)
         return s
 
     def savefile(self,filepath='pyfao56.par'):
@@ -252,6 +272,10 @@ class Parameters:
                     self.thetaWP = float(line[0])
                 elif line[1].lower() == 'theta0':
                     self.theta0 = float(line[0])
+                elif line[1].lower() == 'thetaS':
+                    self.thetaS = float(line[0])
+                elif line[1].lower() == 'Ksat':
+                    self.Ksat = float(line[0])
                 elif line[1].lower() == 'zrini':
                     self.Zrini = float(line[0])
                 elif line[1].lower() == 'zrmax':

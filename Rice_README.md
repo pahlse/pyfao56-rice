@@ -12,9 +12,7 @@ percolation. A perched water table is then maintained in the field for optimal
 plant growth. For the soil water balance this means that field conditions are
 kept at or above saturation with continuous percolation throught most of the
 season. To properly account for all the water in the paddy the fao56 methodlogy
-has to be expanded in the following manner:
-
-In addition to `TAW`, `RAW` and `Dr` the following parameters were added:
+has to be expanded beyond `TAW`, `RAW` and `Dr`:
 
 ### Water Storage Potentials:
 - **Root Zone Drainable Dater (DAW):**  Full Saturation to Field Capacity.
