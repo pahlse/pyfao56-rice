@@ -151,23 +151,26 @@ class AutoIrrigate:
                 'alre' :'{!s:>5}'.format,'idow' :'{:>7s}'.format ,
                 'fpdep':'{:6.2f}'.format,'fpday':'{:6.0f}'.format,
                 'fpact':'{:>7s}'.format ,'mad'  :'{:6.3f}'.format,
-                'madDr':'{:6.2f}'.format,'ksc'  :'{:6.3f}'.format,
-                'dsli' :'{:6.0f}'.format,'dsle' :'{:6.0f}'.format,
-                'evnt' :'{:6.2f}'.format,'icon' :'{:6.2f}'.format,
-                'itdr' :'{:6.2f}'.format,'itfdr':'{:6.3f}'.format,
-                'ietrd':'{:6.0f}'.format,'ietri':'{!s:>5}'.format,
-                'ietre':'{!s:>5}'.format,'ettyp':'{!s:>6}'.format,
-                'iper' :'{:6.2f}'.format,'ieff' :'{:6.2f}'.format,
-                'imin' :'{:6.2f}'.format,'imax' :'{:6.2f}'.format,
-                'fw'   :'{:6.2f}'.format}
-        fmthead = ['  {:>8s}','  {:>8s}','  {:>5s}','  {:>7s}',
-                    ' {:>6s}', ' {:>6s}','  {:>7s}', ' {:>6s}',
-                    ' {:>6s}', ' {:>6s}', ' {:>6s}', ' {:>6s}',
-                    ' {:>6s}', ' {:>6s}', ' {:>6s}', ' {:>6s}',
-                    ' {:>6s}','  {:>5s}','  {:>5s}','  {:>6s}',
-                    ' {:>6s}', ' {:>6s}', ' {:>6s}', ' {:>6s}',
-                    ' {:>6s}']
+                'madDr':'{:6.2f}'.format,'madVp':'{:6.3f}'.format,
+                'madDs':'{:6.3f}'.format,'ksc'  :'{:6.3f}'.format, 
+                'dsle' :'{:6.0f}'.format,'dsli' :'{:6.0f}'.format,
+                'dsle' :'{:6.0f}'.format,'evnt' :'{:6.2f}'.format,
+                'icon' :'{:6.2f}'.format,'itdr' :'{:6.2f}'.format,
+                'itfdr':'{:6.3f}'.format,'ietrd':'{:6.0f}'.format,
+                'ietri':'{!s:>5}'.format,'ietre':'{!s:>5}'.format,
+                'ettyp':'{!s:>6}'.format,'iper' :'{:6.2f}'.format,
+                'ieff' :'{:6.2f}'.format,'imin' :'{:6.2f}'.format,
+                'imax' :'{:6.2f}'.format,'fw'   :'{:6.2f}'.format}
+        fmthead = [' {:>8s}', ' {:>8s}', ' {:>5s}', ' {:>7s}', 
+                   ' {:>6s}', ' {:>6s}','  {:>7s}', ' {:>6s}', 
+                   ' {:>6s}', ' {:>6s}', ' {:>6s}', ' {:>6s}', 
+                   ' {:>6s}', ' {:>6s}', ' {:>6s}', ' {:>6s}', 
+                   ' {:>6s}', ' {:>6s}','  {:>5s}','  {:>5s}',
+                   ' {:>6s}', ' {:>6s}', ' {:>6s}', ' {:>6s}', 
+                   ' {:>6s}', ' {:>6s}', ' {:>6s}', ' {:>6s}'] 
+
         ast='*'*72
+
         s=('{:s}\n'
            'pyfao56: FAO-56 Evapotranspiration in Python\n'
            'AutoIrrigate Data\n'
@@ -252,22 +255,25 @@ class AutoIrrigate:
                 data.append(line[7])          #fpact
                 data.append(float(line[8]))   #mad
                 data.append(float(line[9]))   #madDr
-                data.append(float(line[10]))  #ksc
-                data.append(float(line[11]))  #dsli
-                data.append(float(line[12]))  #dsle
-                data.append(float(line[13]))  #evnt
-                data.append(float(line[14]))  #icon
-                data.append(float(line[15]))  #itdr
-                data.append(float(line[16]))  #itfdr
-                data.append(float(line[17]))  #ietrd
-                data.append(line[18]=='True') #ietri
-                data.append(line[19]=='True') #ietre
-                data.append(line[20].strip()) #ettyp
-                data.append(float(line[21]))  #iper
-                data.append(float(line[22]))  #ieff
-                data.append(float(line[23]))  #imax
-                data.append(float(line[24]))  #imin
-                data.append(float(line[25]))  #fw
+                data.append(float(line[10]))   #madDs
+                data.append(float(line[11]))   #madVp
+                data.append(float(line[12]))   #wdpth
+                data.append(float(line[13]))  #ksc
+                data.append(float(line[14]))  #dsli
+                data.append(float(line[15]))  #dsle
+                data.append(float(line[16]))  #evnt
+                data.append(float(line[17]))  #icon
+                data.append(float(line[18]))  #itdr
+                data.append(float(line[19]))  #itfdr
+                data.append(float(line[20]))  #ietrd
+                data.append(line[21]=='True') #ietri
+                data.append(line[22]=='True') #ietre
+                data.append(line[23].strip()) #ettyp
+                data.append(float(line[24]))  #iper
+                data.append(float(line[25]))  #ieff
+                data.append(float(line[26]))  #imax
+                data.append(float(line[27]))  #imin
+                data.append(float(line[28]))  #fw
                 self.aidata.loc[i] = data
 
     def addset(self,start,end,alre=True,idow='0123456',fpdep=25.,

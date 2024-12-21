@@ -78,11 +78,12 @@ class Parameters:
         Load the parameter data from a file
     """
 
-    def __init__(self, Kcbini=0.15, Kcbmid=1.10, Kcbend=0.50, Lini=25,
-                 Ldev=50, Lmid=50, Lend=25, hini=0.010, hmax=1.20,
-                 thetaFC=0.250, thetaWP=0.100, theta0=0.100, thetaS=0.33, 
-                 Ksat=42.0, Zrini=0.20, Zrmax=1.40, Bundh=0.0, Wdini=0.0,
-                 pbase=0.50, Ze=0.10, REW=8.0, CN2=70, comment=''):
+    def __init__(self, Kcbnrs=0.07, Kcdry=0.35, Kcwet=1.1, Kcbini=0.15, Kcbmid=1.10,
+                 Kcbend=0.50, Lnrs=30, Lprp=10, Lini=25, Ldev=50, Lmid=50,
+                 Lend=25, hini=0.010, hmax=1.20, thetaFC=0.250, thetaWP=0.100,
+                 theta0=0.100, thetaS=0.33, Ksat=42.0, Zrini=0.20, Zrmax=1.40,
+                 Bundh=0.0, Wdpud=50, Wdini=50, Puddays=5, pbase=0.50, Ze=0.10,
+                 Zp=0.4, REW=8.0, CN2=70, comment=''):
         """Initialize the Parameters class attributes.
 
         Default parameter values are given below. Users should update
@@ -117,9 +118,14 @@ class Parameters:
         comment : str  , optional, default = ''
         """
 
+        self.Kcbnrs = Kcbnrs
+        self.Kcwet = Kcwet
+        self.Kcdry = Kcdry
         self.Kcbini  = Kcbini
         self.Kcbmid  = Kcbmid
         self.Kcbend  = Kcbend
+        self.Lnrs    = Lnrs
+        self.Lprp    = Lprp
         self.Lini    = Lini
         self.Ldev    = Ldev
         self.Lmid    = Lmid
@@ -131,10 +137,13 @@ class Parameters:
         self.theta0  = theta0
         self.thetaS  = thetaS
         self.Ksat    = Ksat
+        self.Zp      = Zp
         self.Zrini   = Zrini
         self.Zrmax   = Zrmax
         self.Bundh   = Bundh
+        self.Wdpud   = Wdpud
         self.Wdini   = Wdini
+        self.Puddays = Puddays
         self.pbase   = pbase
         self.Ze      = Ze
         self.REW     = REW
@@ -155,41 +164,36 @@ class Parameters:
            '{:s}\n'
            '{:s}\n'
            '{:s}\n'
+           '{:9.4f} Kcbnrs, Kcb Nursary\n'
+           '{:9.4f} Kcbsoil, Kc Landpreparation\n'
            '{:9.4f} Kcbini, Kcb Initial (FAO-56 Table 17)\n'
            '{:9.4f} Kcbmid, Kcb Mid (FAO-56 Table 17)\n'
            '{:9.4f} Kcbend, Kcb End (FAO-56 Table 17)\n'
+           '{:9d} Lnrs, Length Stage Nursary (days)\n'
+           '{:9d} Lprp, Length Stage Landpreparaton (days)\n'
            '{:9d} Lini, Length Stage Initial (days) (FAO-56 Table 11)\n'
-           '{:9d} Ldev, Length Stage Development (days) '
-           '(FAO-56 Table 11)\n'
+           '{:9d} Ldev, Length Stage Development (days) (FAO-56 Table 11)\n'
            '{:9d} Lmid, Length Stage Mid (days) (FAO-56 Table 11)\n'
            '{:9d} Lend, Length Stage End (days) (FAO-56 Table 11)\n'
            '{:9.4f} hini, Plant Height Initial (m)\n'
            '{:9.4f} hmax, Plant Height Maximum (m) (FAO-56 Table 12)\n'
-           '{:9.4f} thetaFC, Vol. Soil Water Content, Field Capacity '
-           '(cm3/cm3)\n'
-           '{:9.4f} thetaWP, Vol. Soil Water Content, Wilting Point '
-           '(cm3/cm3)\n'
-           '{:9.4f} theta0, Vol. Soil Water Content, Initial '
-           '(cm3/cm3)\n'
-           '{:9.4f} thetaS, Vol. Soil Water Content, Saturated '
-           '(cm3/cm3)\n'
-           '{:9.4f} Ksat, Saturated Hyraulic Konductivity '
-           '(mm/day)\n'
+           '{:9.4f} thetaFC, Vol. Soil Water Content, Field Capacity (cm3/cm3)\n'
+           '{:9.4f} thetaWP, Vol. Soil Water Content, Wilting Point (cm3/cm3)\n'
+           '{:9.4f} theta0, Vol. Soil Water Content, Initial (cm3/cm3)\n'
+           '{:9.4f} thetaS, Vol. Soil Water Content, Saturated (cm3/cm3)\n'
+           '{:9.4f} Ksat, Saturated Hyraulic Konductivity (mm/day)\n'
+           '{:9.4f} Zp, Puddle Depth (m)\n'
            '{:9.4f} Zrini, Rooting Depth Initial (m)\n'
-           '{:9.4f} Zrmax, Rooting Depth Maximum (m) '
-           '(FAO-56 Table 22)\n'
+           '{:9.4f} Zrmax, Rooting Depth Maximum (m) (FAO-56 Table 22)\n'
            '{:9.4f} pbase, Depletion Fraction (p) (FAO-56 Table 22)\n'
-           '{:9.4f} Ze, Depth of surface evaporation layer (m) '
-           '(FAO-56 Table 19 and Page 144)\n'
-           '{:9.4f} REW, Total depth Stage 1 evaporation (mm) '
-           '(FAO-56 Table 19)\n'
-           '{:9d} CN2, Curve Number for AWCII '
-           '(ASCE (2016) Table 14-3 or SCS (1972))\n'
-          ).format(ast,timestamp,ast,self.comment,ast,self.Kcbini,
-                   self.Kcbmid,self.Kcbend,self.Lini,self.Ldev,
+           '{:9.4f} Ze, Depth of surface evaporation layer (m) (FAO-56 Table 19 and Page 144)\n'
+           '{:9.4f} REW, Total depth Stage 1 evaporation (mm) (FAO-56 Table 19)\n'
+           '{:9d} CN2, Curve Number for AWCII (ASCE (2016) Table 14-3 or SCS (1972))\n'
+          ).format(ast,timestamp,ast,self.comment,ast,self.Kcbnrs,self.Kcsoil,self.Kcbini,
+                   self.Kcbmid,self.Kcbend,self.Lnrs,self.Lprp,self.Lini,self.Ldev,
                    self.Lmid,self.Lend,self.hini,self.hmax,self.thetaFC,
                    self.thetaWP,self.theta0,self.thetaS,self.Ksat,self.Zrini,
-                   self.Zrmax,self.pbase,self.Ze,self.REW,self.CN2)
+                   self.Zrmax,self.Zp,self.Bundh,self.Wdini,self.Wdpud,self.pbase,self.Ze,self.REW,self.CN2)
         return s
 
     def savefile(self,filepath='pyfao56.par'):

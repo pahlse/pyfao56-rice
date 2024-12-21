@@ -27,45 +27,45 @@ from src.irrigation import Irrigation
 from src.model import Model
 from src.parameters import Parameters
 from src.soil_profile import SoilProfile
+from src.tools.visualization import Visualization
 from src.update import Update
 from src.weather import Weather
 from src.custom.plots import WBPlot
 
-def run():
+def run(year, base_dir):
     """Setup and run pyfao56 as a test"""
 
     # Get the relevant directory
-    data_dir = os.path.join(os.path.dirname(__file__), "data")
-    output_dir = os.path.join(os.path.dirname(__file__), "results")
+    output_dir = os.path.join(base_dir, str(year))
+    os.makedirs(output_dir, exist_ok=True)
 
     # Specify the model parameters
     par = Parameters(comment = 'DSR Rice for CSSRI Karnal, 2018')
 
-    par.Kcbini = 0.9
-    par.Kcbmid = 1.42
-    par.Kcbend = 0.91
+    par.Kcbini = 0.15
+    par.Kcbmid = 1.15
+    par.Kcbend = 0.75
     par.Lini = 30
     par.Ldev = 45
     par.Lmid = 25
     par.Lend = 20
     par.hini = 0.05
     par.hmax = 1.1
-    par.thetaFC = 0.2373
-    par.thetaWP = 0.1142
-    par.theta0 = 0.0655
-    par.thetaS = 0.3725
-    # par.Ksat = 40.9243
-    par.Ksat = 40.9243**0.33 #According to CROPWAT 8.0 this is Ksat after puddling
+    par.thetaFC = 0.279509
+    par.thetaWP = 0.156771
+    par.theta0 = 0.09707
+    par.thetaS = 0.36635
+    # par.Ksat = 49.0807
+    par.Ksat = 8.0807
     par.Zrini = 0.2
     par.Zrmax = 0.6
     par.Bundh = 0.3
-    par.Wdini = 70 #This does not yet do anything; the idea is to define a initial water depth at transplanting
-    par.pbase = 0.6
+    par.pbase = 0.2
     par.Ze = 0.1
     par.REW =10
     par.CN2 = 70
 
-    par.savefile(os.path.join(data_dir,'CSSRI_DSR_2018.par'))
+    # par.savefile(os.path.join(data_dir,'CSSRI_DSR_2018.par'))
 
 
 # ------------------------------------------------------------------------------------- #
@@ -73,13 +73,13 @@ def run():
 # ------------------------------------------------------------------------------------- #
 
     # Specify the weather data
-    wth = Weather(comment = 'CSSRI Karnal 2018\nSource:   IMD & ISIMIP')
+    wth = Weather(comment=f'CSSRI Karnal {year}\nSource:   IMD & ISIMIP')
     wth.z = 252.64987
     wth.lat = 29.707983
     wth.wndht = 2
 
     # Import weather data from csv
-    weather_data = pd.read_csv(os.path.join(data_dir, "CSSRI_IMD_daily_2018.csv"))
+    weather_data = pd.read_csv("./data/CSSRI_daily_weather.csv")
 
     # Convert the 'date' column to datetime and extract year and day of year
     if 'DATE' in weather_data.columns:
@@ -94,39 +94,19 @@ def run():
     # Create an empty DataFrame with all the required columns filled with NaN
     wth.wdata = pd.DataFrame(columns=required_columns)
 
-    column_mapping = {
-        'SRAD': 'Srad',
-        'TMAX': 'Tmax',
-        'TMIN': 'Tmin',
-        'VAPR': 'Vapr',
-        'TDEW': 'Tdew',
-        'RHMAX': 'RHmax',
-        'RHMIN': 'RHmin',
-        'WNDSP': 'Wndsp',
-        'RAIN': 'Rain',
-        'ETREF': 'ETref',
-        'MORP': 'MorP'
-    }
+    column_mapping = { 'SRAD': 'Srad', 'TMAX': 'Tmax', 'TMIN': 'Tmin', 'VAPR':
+                      'Vapr', 'TDEW': 'Tdew', 'RHMAX': 'RHmax', 'RHMIN':
+                      'RHmin', 'WNDSP': 'Wndsp', 'RAIN': 'Rain', 'ETREF':
+                      'ETref', 'MORP': 'MorP' }
 
     for csv_col, wdata_col in column_mapping.items():
         if csv_col in weather_data.columns:
             wth.wdata[wdata_col] = weather_data[csv_col]
 
     wth.wdata['MorP'] = 'M'
-
     wth.wdata.index = weather_data['YEAR'].astype(str) + '-' + weather_data['DOY']
 
-    # wth.loadfile(os.path.join(data_dir,'cotton2018.wth'))
-
-    etref_list = []
-
-    # for index in wth.wdata.index:
-    #     etref_list.append(wth.compute_etref(index))
-
-    # wth.wdata['ETref'] = etref_list
-
-    wth.savefile(os.path.join(data_dir,'CSSRI_IMD_daily_2018.wth'))
-    # wth.loadfile(os.path.join(data_dir,'CSSRI_IMD_daily_2018.wth'))
+    wth.savefile(os.path.join(output_dir,f'CSSRI_IMD_daily_{year}.wth'))
 
 
 
@@ -134,45 +114,34 @@ def run():
 # Irrigation Data
 # ------------------------------------------------------------------------------------- #
     # Specify the planting date
-    planting_date = '2018-06-01'
+    planting_date = f'{year}-05-15'
 
     # Convert planting date to a datetime object
     planting_datetime = datetime.strptime(planting_date, '%Y-%m-%d')
     total_growth_days = par.Lini + par.Ldev + par.Lmid + par.Lend
     harvest_datetime = planting_datetime + timedelta(days=total_growth_days)
+    irrig_cutoff = harvest_datetime - timedelta(days=14)
 
     # Convert planting and harvest dates to YYYY-DOY format
-    planting_doy = planting_datetime.strftime('%Y') + '-' + planting_datetime.strftime('%j')
-    harvest_doy = harvest_datetime.strftime('%Y') + '-' + harvest_datetime.strftime('%j')
-
-    # Specify the irrigation schedule
-    irr = Irrigation(comment = 'DSR 2018 -- CSSRI, Karnal')
-    irr.addevent(2018, 152, 70.0, 1)
-    irr.addevent(2018, 162, 70.0, 1)
-    irr.addevent(2018, 172, 70.0, 1)
-    irr.addevent(2018, 232, 220.0, 1)
-
-    # irr.savefile(os.path.join(data_dir,'CSSRI_DSR_2018.irr'))
-    # irr.loadfile(os.path.join(module_dir,'cottondry2013.irr'))
+    planting_doy = planting_datetime.strftime('%Y-%j')
+    harvest_doy = harvest_datetime.strftime('%Y-%j')
+    irrig_cutoff_doy = irrig_cutoff.strftime('%Y-%j')
 
     airr = AutoIrrigate()
-    airr.addset(planting_doy, '2018-252', 
-                # mad=0.5, 
-                madDs=0.01,
-                # madVp=10.0,    #[mm]
-                # wdpth=100,    #[mm]
-                fpday=1, 
-                fpdep=1, 
-                fpact='cancel', 
-                dsli=5, 
-                dsle=5, 
+    airr.addset(planting_doy, irrig_cutoff_doy, 
+                # madDs=0.43,      # irrigate at 10 kPa (float, frac)
+                madDs=0.74,      # irrigate at 20 kPa (float, frac)
+                # madDs=0.95,      # irrigate at 30 kPa (float, frac)
+                # madDr=0.07,      # irrigate at 40 kPa (float, frac)
+                # madVp=10.0,      #[float, mm]
+                wdpth=30,    #[mm]
+                fpday=1, # Forcasting days 
+                fpdep=1, # Forcasting for forcasting precipitation depth
+                fpact='cancel', # What to do if forcast sais rain
                 ieff=100)
 
-    # airr.savefile(os.path.join(output_dir,'CSSRI_DSR_2018.air'))
-
-
 # ------------------------------------------------------------------------------------- #
-# Call the Model
+# Main Simulation
 # ------------------------------------------------------------------------------------- #
 
     #Run the model
@@ -181,17 +150,15 @@ def run():
                 autoirr=airr, 
                 # roff=True,  #NOTE: Runoff not working for now. There is a bug!!!
                 ponded=True, 
-                cons_p=False, 
+                # puddled=True,
+                # cons_p=True,
                 aq_Ks=True, 
-                comment = '2018 DSR -- CSSRI, Karnal')
+                comment = f'{year} DSR -- CSSRI, Karnal')
 
     mdl.run()
 
-    # Save the model results
-    mdl.savesummary(os.path.join(output_dir,'CSSRI_DSR_2018_test.out'))
-    mdl.savesums(os.path.join(output_dir,'CSSRI_DSR_2018_test.sum'))
-    mdl.savecsv(os.path.join(output_dir,'CSSRI_DSR_2018_test.csv'))
-    print('Model output saved successfully.')
+    mdl.savesums(os.path.join(output_dir,f'DSR.{year}.CSSRI.sum'))
+    mdl.savefile(os.path.join(output_dir,f'DSR.{year}.CSSRI.out'))
 
     # # Plot the model results
     required_columns = ['Day', 'Rain', 'Irrig', 'Runoff', 'DP', 'TAW', 'DAW', 'RAW', 'Dr', 'Ds', 'Vp']
@@ -199,7 +166,48 @@ def run():
 
     plotly_fig = WBPlot(results_mdl)
     plotly_fig.show()
+    # plotly_fig.write_image(os.path.join(output_dir,f'DSR.{year}.CSSRI.jpg'))
+
+    summary_data = mdl.swbdata
+    summary_data['Year'] = year  # Add the year for reference
+    summary_df = pd.DataFrame([summary_data])  # Convert to DataFrame for saving
+    summary_csv_path = os.path.join(output_dir, f'DSR.{year}.CSSRI_summary.csv')
+    summary_df.to_csv(summary_csv_path, index=False)
+    print(f'Summary data saved to {summary_csv_path}')
+
+    return summary_csv_path  # Return the path of the summary CSV
+
+def main():
+    # Base output directory
+    base_dir = os.path.join(os.path.dirname(__file__), "results")
+
+    # Define the range of years to simulate
+    years_to_simulate = range(1989, 2020)
+
+    # List to store paths to all summary files
+    all_summary_paths = []
+
+    for year in years_to_simulate:
+        summary_path = run(year, base_dir)
+        all_summary_paths.append(summary_path)
+
+    # Consolidate all summaries into a single CSV
+    all_summaries = []
+
+    for summary_path in all_summary_paths:
+        summary_df = pd.read_csv(summary_path)
+        all_summaries.append(summary_df)
+
+    # Combine all summaries into a single DataFrame
+    consolidated_summary = pd.concat(all_summaries, ignore_index=True)
+
+    # Save the consolidated summary to a CSV
+    consolidated_summary_path = os.path.join(base_dir, "summary_all_years.csv")
+    consolidated_summary.to_csv(consolidated_summary_path, index=False)
+
+    print(f"Consolidated summary saved to {consolidated_summary_path}")
 
 
 if __name__ == '__main__':
-    run()
+    run(2016, os.path.join(os.path.dirname(__file__), "results"))
+    # main()

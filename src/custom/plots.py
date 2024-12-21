@@ -17,10 +17,10 @@ def WBPlot(results):
                              line=dict(color='brown'), name='TAW'))
     fig.add_trace(pl.Scatter(x=results['Day'], y=-results['DAW'], mode='lines', 
                              line=dict(color='lightblue', width=2), name='DAW'))
-    fig.add_trace(pl.Scatter(x=results['Day'], y= 0.6 * -results['TAW'], mode='lines', 
-                             line=dict(color='lightgrey', width=2), name='RAW_p'))
-    fig.add_trace(pl.Scatter(x=results['Day'], y=-results['RAW'], mode='lines', 
-                             line=dict(color='darkslategrey', width=2), name='RAW'))
+    # fig.add_trace(pl.Scatter(x=results['Day'], y= 0.6 * -results['TAW'], mode='lines', 
+    #                          line=dict(color='lightgrey', width=2), name='RAW_p'))
+    # fig.add_trace(pl.Scatter(x=results['Day'], y=-results['RAW'], mode='lines', 
+    #                          line=dict(color='darkslategrey', width=2), name='RAW'))
 
     fig.add_trace(pl.Scatter(x=results['Day'], y=-results['Dr'], mode='lines', 
                              line=dict(color='red', width=2), name='Dr'))
