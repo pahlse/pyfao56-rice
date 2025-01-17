@@ -157,7 +157,7 @@ The following additions to `model.py` are propoesd:
 
 ## To-Do's 
 
-[ ] What happens to `Ks`????
-[x] Write a `landprep.py` script containing its own class and modules.
-[ ] Calculate `runoff` from excess rain and irrigation based on bund hight
-[ ] Add `if clauses` that paddy can be puddled but not ponded or ponded but not puddled.
+- [ ] What happens to `Ks`????
+- [x] Write a `landprep.py` script containing its own class and modules.
+- [ ] Calculate `runoff` from excess rain and irrigation based on bund hight
+- [ ] Add `if clauses` that paddy can be puddled but not ponded or ponded but not puddled.
