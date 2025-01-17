@@ -33,8 +33,6 @@ from src.weather import Weather
 from src.custom.plots import WBPlot
 
 def run(year, base_dir):
-    """Setup and run pyfao56 as a test"""
-
     # Get the relevant directory
     output_dir = os.path.join(base_dir, str(year))
     os.makedirs(output_dir, exist_ok=True)
@@ -56,7 +54,7 @@ def run(year, base_dir):
     par.theta0 = 0.09707
     par.thetaS = 0.36635
     # par.Ksat = 49.0807
-    par.Ksat = 8.0807
+    par.Ksat = 8 # Estimated by Proloy
     par.Zrini = 0.2
     par.Zrmax = 0.6
     par.Bundh = 0.3
@@ -64,9 +62,6 @@ def run(year, base_dir):
     par.Ze = 0.1
     par.REW =10
     par.CN2 = 70
-
-    # par.savefile(os.path.join(data_dir,'CSSRI_DSR_2018.par'))
-
 
 # ------------------------------------------------------------------------------------- #
 # Weather Data
@@ -114,7 +109,7 @@ def run(year, base_dir):
 # Irrigation Data
 # ------------------------------------------------------------------------------------- #
     # Specify the planting date
-    planting_date = f'{year}-05-15'
+    planting_date = f'{year}-06-01'
 
     # Convert planting date to a datetime object
     planting_datetime = datetime.strptime(planting_date, '%Y-%m-%d')
@@ -146,9 +141,7 @@ def run(year, base_dir):
 
     #Run the model
     mdl = Model(planting_doy, harvest_doy, par, wth, 
-                # irr=irr,
                 autoirr=airr, 
-                # roff=True,  #NOTE: Runoff not working for now. There is a bug!!!
                 ponded=True, 
                 # puddled=True,
                 # cons_p=True,
@@ -209,5 +202,6 @@ def main():
 
 
 if __name__ == '__main__':
-    run(2016, os.path.join(os.path.dirname(__file__), "results"))
+    # This can be turned into a for loop to iterate over multiple years
+    run(2018, os.path.join(os.path.dirname(__file__), "results"))
     # main()

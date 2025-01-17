@@ -33,72 +33,71 @@ from src.update import Update
 from src.weather import Weather
 from src.custom.plots import WBPlot
 
-def savesums(combined_df, filepath='./results/combined_results_TPR.sum', comment=''):
+
+def savesums(swbdata, filepath='pyfao56.sum'):
     tmstmp = datetime.now()
     timestamp = tmstmp.strftime('%Y-%m-%d %H:%M:%S')
-    
-    ast = '*' * 72
-    s = (f'{ast}\n'
-         f'pyfao56: FAO-56 Evapotranspiration in Python\n'
-         f'Seasonal Water Balance Summary\n'
-         f'Timestamp: {timestamp}\n'
-         f'All values expressed in mm.\n'
-         f'{ast}\n'
-         f'{comment}\n'
-         f'{ast}\n')
+    sdate = swbdata['startDate'].strftime('%Y-%m-%d')
+    edate = swbdata['endDate'].strftime('%Y-%m-%d')
+    comment = swbdata.get('comment', 'No comments available.')
 
-    if not combined_df.empty:
-        # Keys to include in the summary
-        keys = [
-            'ETref', 'ETc', 'ETcadj', 'E', 'T', 'DP', 'K', 'Rain', 'Runoff',
-            'Irrig', 'IrrLoss', 'Gross_Irrig', 'Num_Irrig', 'Mean_Irrig',
-            'Dr_ini', 'Dr_end', 'Veff_ini', 'Veff_end'
-        ]
+    ast = '*'*72
+    s = ('{:s}\n'
+        'pyfao56: FAO-56 Evapotranspiration in Python\n'
+        'Seasonal Water Balance Summary\n'
+        'Timestamp: {:s}\n'
+        'Simulation start date: {:s}\n'
+        'Simulation end date: {:s}\n'
+        'All values expressed in mm.\n'
+        '{:s}\n'
+        '{:s}\n'
+        '{:s}\n'
+        ).format(ast,timestamp,sdate,edate,ast,comment,ast)
 
-        # Aggregate data for the keys
-        swbdata = combined_df[keys].sum(axis=0, skipna=True)
-        for key in keys:
-            if key in swbdata:
-                s += f'{swbdata[key]:8.3f} : {key}\n'
+    keys = [ 'ETref', 'ETc', 'ETcadj', 'E', 'T', 'DP', 'K', 'Rain',
+            'Runoff', 'Irrig', 'IrrLoss', 'Gross_Irrig', 'Num_Irrig',
+            'Mean_Irrig', 'Dr_ini', 'Dr_end', 'Veff_ini', 'Veff_end' ]
+    for key in keys:
+        value = swbdata.get(key, None)
+        if value is not None:
+            s += f"{value:8.0f} : {key}\n"
+        else:
+            s += f"{'N/A':>8} : {key}\n"
 
-    try:
-        with open(filepath, 'w') as f:
-            f.write(s)
-    except FileNotFoundError:
-        print('The filepath for summary data is not found.')
-    else:
-        print(f'Summary saved successfully to {filepath}')
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    # Write the summary to the specified file
+    with open(filepath, 'w') as file:
+        file.write(s)
 
 def run():
-    """Setup and run pyfao56 as a test"""
-
-    # Get the relevant directory
+    # Get the relevant directories
     data_dir = os.path.join(os.path.dirname(__file__), "data")
-    output_dir = os.path.join(os.path.dirname(__file__), "results")
+    output_dir = os.path.join(os.path.dirname(__file__), "results/2018")
+
+    os.makedirs(os.path.dirname(output_dir), exist_ok=True)
 
     # Specify the model parameters
     par = Parameters(comment = 'TPR Rice for CSSRI Karnal, 2018')
 
-    par.Kcbnrs = 0.1
     par.Kcdry = 0.35
-    par.Kcwet = 1.1
-    par.Kcbini = 0.10
+    par.Kcwet = 0.90
+    par.Kcbini = 0.15
     par.Kcbmid = 0.95
-    par.Kcbend = 0.72
+    par.Kcbend = 0.75
     par.Lnrs = 30
     par.Lini = 30
     par.Ldev = 45
     par.Lmid = 25
     par.Lend = 20
-    par.Lprp = 7
-    par.Puddays = 5
+    par.Lprp = 6
+    par.Puddays = 4
     par.hini = 0.05
     par.hmax = 1.1
     par.thetaFC = 0.2373
     par.thetaWP = 0.1142
     par.theta0 = 0.0555
     par.thetaS = 0.3725
-    par.Ksat = 8
+    par.Ksat = 49
     par.Zrini = 0.4
     par.Zrmax = 0.4
     par.Zp = 0.4
@@ -108,9 +107,6 @@ def run():
     par.Ze = 0.1
     par.REW =10
     par.CN2 = 70
-
-    # par.savefile(os.path.join(data_dir,'CSSRI_TPR_2018.par'))
-
 
 # ------------------------------------------------------------------------------------- #
 # Weather Data
@@ -160,18 +156,7 @@ def run():
 
     wth.wdata.index = weather_data['YEAR'].astype(str) + '-' + weather_data['DOY']
 
-    # wth.loadfile(os.path.join(data_dir,'cotton2018.wth'))
-
-    etref_list = []
-
-    # for index in wth.wdata.index:
-    #     etref_list.append(wth.compute_etref(index))
-
-    # wth.wdata['ETref'] = etref_list
-
     wth.savefile(os.path.join(data_dir,'CSSRI_IMD_daily_2018.wth'))
-    # wth.loadfile(os.path.join(data_dir,'CSSRI_IMD_daily_2018.wth'))
-
 
 
 # ------------------------------------------------------------------------------------- #
@@ -196,34 +181,25 @@ def run():
     harvest_doy = harvest_datetime.strftime('%Y-%j')
     irrig_cutoff_doy = irrig_cutoff.strftime('%Y-%j')
 
-    # Specify the irrigation schedule
-    irr = Irrigation(comment = 'TPR 2018 -- CSSRI, Karnal')
-    irr.addevent(2018, 152, 70.0, 1)
-    irr.addevent(2018, 162, 70.0, 1)
-    irr.addevent(2018, 172, 70.0, 1)
-    irr.addevent(2018, 232, 220.0, 1)
-
-    # irr.savefile(os.path.join(data_dir,'CSSRI_TPR_2018.irr'))
-    # irr.loadfile(os.path.join(module_dir,'cottondry2013.irr'))
-
     airr = AutoIrrigate()
     airr.addset(transplanting_doy, irrig_cutoff_doy, 
                 # mad=0.2, 
                 # madDs=0.8,
-                madVp=30.0,    #[mm]
+                madVp=10.0,    #[mm]
                 wdpth=70,    #[mm]
                 # fpday=1, # Forcasting days 
                 # fpdep=1, # Forcasting for forcasting precipitation depth
                 # fpact='cancel', # What to do if forcast sais rain
-                # dsli=5,  # Days since last irrigation event
-                # dsle=5,  # Days since last watering event
+                dsli=3,  # Days since last irrigation event
+                dsle=3,  # Days since last watering event
                 # evnt=20, # Minimum depth of percip and irr to be considered a watering event (float, mm)
                 # icon=70,
                 ieff=100)
 
-    airr.savefile(os.path.join(output_dir,'CSSRI_TPR_2018.air'))
+# ------------------------------------------------------------------------------------- #
+# Landprep Simulation
+# ------------------------------------------------------------------------------------- #
 
-    
     ldp = Landprep(landprep_doy, transplanting_doy, par, wth)
 
     ldp.run()
@@ -238,12 +214,13 @@ def run():
     ldp_results = ldp.odata
     ldp_df = pd.DataFrame(ldp_results, columns=columns)
 
+    # Update soil parameters after landprep
     par.theta0 = ldp_df.iloc[-1]['theta0']
     par.Wdpud = ldp_df.iloc[-1]['Vp']
     par.Ksat = ldp_df.iloc[-1]['K']
 
-
-    print(par.Ksat)
+    ldp.savesums(os.path.join(output_dir,f'TPR.LDP.2018.CSSRI.sum'))
+    ldp.savefile(os.path.join(output_dir,f'TPR.LDP.2018.CSSRI.out'))
 
 # ------------------------------------------------------------------------------------- #
 # Main Simulation
@@ -253,7 +230,6 @@ def run():
     mdl = Model(transplanting_doy, harvest_doy, par, wth, 
                 # irr=irr,
                 autoirr=airr, 
-                # roff=True,  #NOTE: Runoff not working for now. There is a bug!!!
                 ponded=True, 
                 puddled=True,
                 cons_p=True,
@@ -262,59 +238,64 @@ def run():
 
     mdl.run()
 
+    mdl.savesums(os.path.join(output_dir,f'TPR.MDL.2018.CSSRI.sum'))
+    mdl.savefile(os.path.join(output_dir,f'TPR.MDL.2018.CSSRI.out'))
+
+# ------------------------------------------------------------------------------------- #
+# Combine Results
+# ------------------------------------------------------------------------------------- #
+
     mdl_results = mdl.odata
     mdl_df = pd.DataFrame(mdl_results, columns=columns)
-
 
     # Align columns and combine results
     ldp_df = ldp_df.reindex(columns=columns)  # Add missing columns, filled with NaN
     mdl_df = mdl_df.reindex(columns=columns)  # Ensure the same column order
 
-    ldp_df['Day'] = range(-len(ldp_df), 0)
+    ldp_df['Day'] = range(-len(ldp_df), 0) # reverse the day count order
 
-    combined_df = pd.concat([ldp_df, mdl_df], ignore_index=True)
+    df = pd.concat([ldp_df, mdl_df], ignore_index=True)
 
-    # Save combined results to a single file
-    output_file = os.path.join(output_dir, 'CSSRI_TPR_2018_combined_results.csv')
-    combined_df.to_csv(output_file, index=False)
-
-    # # Save the model results
-    # # mdl.savesummary(os.path.join(output_dir,'CSSRI_TPR_2018_summary.out'))
-    # mdl.savesums(os.path.join(output_dir,'CSSRI_TPR_2018_test.sum'))
-    # # mdl.savecsv(os.path.join(output_dir,'CSSRI_TPR_2018_test.csv'))
-    # mdl.savefile(os.path.join(output_dir,'CSSRI_TPR_2018_test.out'))
-    # print('Model output saved successfully.')
-
-    # # Plot the model results
     required_columns = ['Day', 'Rain', 'Irrig', 'Runoff', 'DP', 'TAW', 'DAW', 'RAW', 'Dr', 'Ds', 'Vp']
-    combined_plot = mdl.odata[required_columns]
-
-    plotly_fig = WBPlot(combined_df)
+    plotly_fig = WBPlot(df)
     plotly_fig.show()
 
-    # vis = Visualization(mdl, dayline=True)
-    # vis.plot_Kc(title='2018 PRT p10-2 Kc',
-    #             show=True,
-    #             filepath=os.path.join(output_dir,'CSSRI_TPR_2018_test.png'))
+    # Assuming your dataframe is called `df`
+    df['Date'] = pd.to_datetime(df['Date'])  # Ensure 'Date' is a datetime object
 
-    def add_sums(mdl_sums, ldp_sums):
-        combined_sums = {}
-        for key in mdl_sums.keys():
-            combined_sums[key] = mdl_sums.get(key, 0) + ldp_sums.get(key, 0)
-        return combined_sums
+    # Define start and end dates for the seasonal data
+    start_date = df['Date'].min()
+    end_date = df['Date'].max()
+    start_doy = start_date.strftime("%Y-%j")
+    end_doy = end_date.strftime("%Y-%j")
 
-    mdl_sums = mdl.swbdata 
-    ldp_sums = ldp.swbdata
-    total_sums = add_sums(mdl_sums, ldp_sums)
+    # Calculate water balance data
+    swbdata = {
+        'startDate': start_date,
+        'endDate': end_date,
+        'comment': '2018 TPR -- CSSRI, Karnal',
+        'ETref': df['ETref'].sum(),
+        'ETc': df['ETc'].sum(), 
+        'ETcadj': df['ETcadj'].sum(), 
+        'E': df['E'].sum(), 
+        'T': df['T'].sum(), 
+        'DP': df['DP'].sum(), 
+        'K': df['K'].mean(), 
+        'Rain': df['Rain'].sum(), 
+        'Runoff': df['Runoff'].sum(), 
+        'Irrig': df['Irrig'].sum(), 
+        'IrrLoss': df['IrrLoss'].sum(), 
+        'Gross_Irrig': df['Irrig'].sum() + df['IrrLoss'].sum(), 
+        # 'Gross_Irrig': df['Irrig'].sum() + df['IrrLoss'].sum(), 
+        'Num_Irrig': len(df[df['Irrig'] > 0]), 
+        'Mean_Irrig': df[df['Irrig'] > 0]['Irrig'].mean(), 
+        'Dr_ini': df.loc[df['Date'] == start_date, 'Dr'].iloc[0], 
+        'Dr_end': df.loc[df['Date'] == end_date, 'Dr'].iloc[0], 
+        'Veff_ini': df.loc[df['Date'] == start_date, 'Veff'].iloc[0], 
+        'Veff_end': df.loc[df['Date'] == end_date, 'Veff'].iloc[0], 
+    }
 
-    # Print the combined sums
-
-    for key, value in total_sums.items():
-        print(f"{key}: {value:.3f}")
-
-    savesums(combined_df = total_sums)
-
-
+    savesums(swbdata, filepath=os.path.join(output_dir,f'TPR_2018_CSSRI.sum'))
 
 
 if __name__ == '__main__':

@@ -114,68 +114,6 @@ class Landprep:
             f.write(self.__str__())
             f.close()
 
-    def savesummary(self, filepath='pyfao56_summary.out'):
-        self.tmstmp = datetime.datetime.now()
-        timestamp = self.tmstmp.strftime('%Y-%m-%d %H:%M:%S')
-        sdate = self.startDate.strftime('%Y-%m-%d')
-        edate = self.endDate.strftime('%Y-%m-%d')
-
-        fmts = {
-            'Date': '{:10s}'.format, 'DOY': '{:5d}'.format, 'Day':
-            '{:5d}'.format, 'ETref': '{:7.2f}'.format, 'ETc': '{:7.2f}'.format,
-            'ETcadj': '{:7.2f}'.format, 'DP': '{:7.2f}'.format, 'Irrig':
-            '{:7.2f}'.format, 'IrrLoss': '{:7.2f}'.format, 'Rain':
-            '{:7.2f}'.format, 'Runoff': '{:7.2f}'.format, 'TAW':
-            '{:7.2f}'.format, 'DAW': '{:7.2f}'.format, 'Veff':
-            '{:7.2f}'.format, 'Vp': '{:7.2f}'.format, 'Vs': '{:7.2f}'.format,
-            'Vr': '{:7.2f}'.format, 'Ds': '{:7.2f}'.format, 'Dr':
-            '{:7.2f}'.format, 'fDr': '{:7.2f}'.format
-        }
-
-        keys = [
-            'Date', 'DOY', 'Day', 'ETref', 'ETc', 'ETcadj', 'DP', 'Irrig',
-            'IrrLoss', 'Rain', 'Runoff', 'TAW', 'DAW', 'Veff', 'Vp',
-            'Vs', 'Vr', 'Ds', 'Dr', 'fDr'
-        ]
-
-        ast = '*' * 72
-        s = (
-            f'{ast}\n'
-            'pyfao56: FAO-56 Evapotranspiration in Python\n'
-            'Summary of Selected Data\n'
-            f'Timestamp: {timestamp}\n'
-            f'Simulation start date: {sdate}\n'
-            f'Simulation end date: {edate}\n'
-            f'{ast}\n'
-        )
-
-        # Header for selected keys
-        header = (
-            f'{keys[0]:>10s}'  # Date
-            f'{keys[1]:>6s}'   # DOY
-            f'{keys[2]:>6s}'   # Day
-            + ''.join(f'{key:>8s}' for key in keys[3:])
-        )
-
-        s += header + '\n'
-
-        # Check if odata is not empty and write formatted rows
-        if not self.odata.empty:
-               for _, row in self.odata.iterrows():
-                   formatted_row = ' '.join(
-                       fmts[key](int(row[key]) if key in ['DOY', 'Day'] else row[key])
-                       if key in fmts and pd.notnull(row[key]) else str(row[key])
-                       for key in keys if key in self.odata.columns
-                   )
-                   s += formatted_row + '\n'
-
-        try:
-            with open(filepath, 'w') as f:
-                f.write(s)
-                print(f"Summary successfully saved to {filepath}")
-        except FileNotFoundError:
-            print('The filepath for the summary data is not found.')
-
     def savecsv(self, filepath='pyfao56_summary.csv'):
         keys = [
             'Date', 'DOY', 'Day', 'ETref', 'ETc', 'ETcadj', 'DP', 'Irrig',
@@ -224,7 +162,7 @@ class Landprep:
             keys = ['ETref','ETc','ETcadj','DP','Irrig',
                     'IrrLoss','Rain','Runoff','Veff_ini','Veff_end']
             for key in keys:
-                s += '{:8.3f} : {:s}\n'.format(self.swbdata[key],key)
+                s += '{:8.0f} : {:s}\n'.format(self.swbdata[key],key)
 
         try:
             f = open(filepath, 'w')
@@ -269,9 +207,11 @@ class Landprep:
         io.Ze = self.par.Ze
 
         io.REW = self.par.REW
-        io.Bundh   = self.par.Bundh * 1000
+        io.Bundh = self.par.Bundh * 1000
 
         io.ieff = self.ieff
+
+        io.lamb = 1 / io.Puddays * math.log(io.Ksat**0.55 / io.Ksat)
 
         #Total evaporable water (TEW, mm) - FAO-56 Eq. 73
         io.TEW = 1000. * (io.thetaFC - 0.50 * io.thetaWP) * io.Ze
@@ -364,12 +304,13 @@ class Landprep:
 
         sdoy = self.startDate.strftime("%Y-%j")
         edoy = self.endDate.strftime("%Y-%j")
+
         self.swbdata = {
             'ETref': sum(self.odata['ETref']),
             'ETc': sum(self.odata['ETc']),
             'ETcadj': sum(self.odata['ETcadj']),
             'E': sum(self.odata['E']),
-            'T': sum(self.odata['T']),
+            'T': 0,
             'DP': sum(self.odata['DP']),
             'K': self.odata['K'].mean(),  # Mean of Hydraulic konductivity
             'Rain': sum(self.odata['Rain']),
@@ -400,10 +341,11 @@ class Landprep:
         #Effective precipitation (mm)
         effrain = max(0, io.rain - io.runoff)
         
-q       io.K = io.Ksat
-        # io.K = sorted([io.Ksat**0.33, 
-        #                 io.Ksat * math.exp(-0.2549 * (io.i + 1 - io.Lprp + io.Puddays)), 
-        #                 io.Ksat])[1]
+        io.K = io.Ksat
+
+        io.K = sorted([io.Ksat**0.55, 
+                        io.Ksat * math.exp(io.lamb * (io.i + 1 - io.Lprp + io.Puddays)), 
+                        io.Ksat])[1]
 
         #Evaporation reduction coeff. under exposed soil (Kr, mm) - FAO-56 Eq. 74
         io.Kr = sorted([0.0,(io.TEW-io.De)/(io.TEW-io.REW),1.0])[1]
@@ -439,7 +381,7 @@ q       io.K = io.Ksat
         # Residual soil moisture (Vr, mm)
         io.Vr = sorted([0.0, io.Veff - io.Vp - io.Vs, io.TAW])[1]
 
-        # Deep percolation: If drainable water in
+        # Deep percolation: If drainable water available
         io.DP = sorted([0.0, io.Vs, io.K])[1]
 
         #Root zone saturated soil water depletion (Ds,mm)
