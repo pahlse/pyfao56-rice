@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import pandas as pd
+import plotly.graph_objects as go
 import os
 
 from src.autoirrigate import AutoIrrigate
@@ -43,17 +44,17 @@ def crop_parameters(crop_type):
 
     elif crop_type == 'Potato':
         return Parameters(comment='Potato for CSSRI Karnal, 2018',
-                          Kcbini=0.15,
+                          Kcbini=0.25,
                           Kcbmid=1.10,
-                          Kcbend=0.10,
-                          Lini=30,
-                          Ldev=30,
-                          Lmid=40,
-                          Lend=30,
+                          Kcbend=0.30,
+                          Lini=7,
+                          Ldev=21,
+                          Lmid=28,
+                          Lend=14,
                           hini=0.05,
                           hmax=0.6,
                           pbase=0.4,
-                          Zrini=0.1,
+                          Zrini=0.3,
                           Zrmax=0.5,
                           thetaFC=0.279509,
                           thetaWP=0.156771,
@@ -71,9 +72,9 @@ def crop_parameters(crop_type):
                           Kcbini=0.15,
                           Kcbmid=1.10,
                           Kcbend=0.20,
-                          Lini=30,
+                          Lini=15,
                           Ldev=30,
-                          Lmid=40,
+                          Lmid=50,
                           Lend=30,
                           hini=0.05,
                           hmax=1.1,
@@ -96,10 +97,10 @@ def crop_parameters(crop_type):
                           Kcbini=0.15,
                           Kcbmid=1.15,
                           Kcbend=0.25,
-                          Lini=20,
-                          Ldev=35,
-                          Lmid=40,
-                          Lend=30,
+                          Lini=12,
+                          Ldev=36,
+                          Lmid=48,
+                          Lend=24,
                           hini=0.1,
                           hmax=2.5,
                           pbase=0.5,
@@ -158,11 +159,11 @@ def run(crop_type, year, base_dir):
     wth.savefile(os.path.join(output_dir, f'{crop_type}_CSSRI_IMD_daily_{year}.wth'))
 
     # Irrigation Data
-    planting_date = f'{year}-05-15'  # Default for DSR, adjust per crop
+    planting_date = f'{year}-06-01'  # Default for DSR, adjust per crop
     if crop_type == 'Wheat':
-        planting_date = f'{year}-10-01'
+        planting_date = f'{year}-10-15'
     elif crop_type == 'Maize':
-        planting_date = f'{year+1}-04-01'
+        planting_date = f'{year+1}-01-25'
 
     planting_datetime = datetime.strptime(planting_date, '%Y-%m-%d')
     total_growth_days = par.Lini + par.Ldev + par.Lmid + par.Lend
@@ -174,19 +175,26 @@ def run(crop_type, year, base_dir):
     irrig_cutoff_doy = irrig_cutoff.strftime('%Y-%j')
 
     airr = AutoIrrigate()
+
     if crop_type == 'Rice':
         airr.addset(planting_doy, irrig_cutoff_doy, madDs=0.2, wdpth=0, fpday=1, fpdep=1, fpact='cancel', ieff=100)
     elif crop_type == 'Wheat':
         airr.addset(planting_doy, irrig_cutoff_doy, mad=0.75, wdpth=0, fpday=1, fpdep=1, fpact='cancel', ieff=100)
+    elif crop_type == 'Potato':
+        airr.addset(planting_doy, harvest_doy, mad=0.75, wdpth=0, fpday=1, fpdep=1, fpact='cancel', ieff=100)
     elif crop_type == 'Maize':
         airr.addset(planting_doy, irrig_cutoff_doy, mad=0.75, wdpth=0, fpday=1, fpdep=1, fpact='cancel', ieff=100)
 
     # Run the Model
-    mdl = Model(planting_doy, harvest_doy, par, wth, autoirr=airr, ponded=True, aq_Ks=True, comment=f'{year} {crop_type} CSSRI, Karnal')
+    mdl = Model(planting_doy, harvest_doy, par, wth, autoirr=airr, ponded=False, aq_Ks=True, comment=f'{year} {crop_type} CSSRI, Karnal')
+
+    if crop_type == 'Rice':
+        mdl = Model(planting_doy, harvest_doy, par, wth, autoirr=airr, ponded=True, aq_Ks=True, comment=f'{year} {crop_type} CSSRI, Karnal')
+
     mdl.run()
 
     # Save results
-    mdl.savesums(os.path.join(output_dir, f'{year}_{crop_type}_CSSRI.sum'))
+    mdl.savesums(os.path.join(output_dir, f'{year}_{crop_type}_CSSRI_1.sum'))
     mdl.savefile(os.path.join(output_dir, f'{year}_{crop_type}_CSSRI.out'))
 
     # Plot the results
@@ -203,14 +211,39 @@ def run(crop_type, year, base_dir):
     summary_df.to_csv(summary_csv_path, index=False)
     print(f'Summary data saved to {summary_csv_path}')
 
+    df = mdl.odata
+    fig = go.Figure()
+
+    # Add traces (lines) for each of the variables: Kcadj, Ke, Kcb, Kcmax
+    fig.add_trace(go.Scatter(x=df['Day'], y=df['Kcadj'], mode='lines', name='Kcadj', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=df['Day'], y=df['Ke'], mode='lines', name='Ke', line=dict(color='lightblue')))
+    fig.add_trace(go.Scatter(x=df['Day'], y=df['Kcb'], mode='lines', name='Kcb', line=dict(color='darkgreen')))
+    fig.add_trace(go.Scatter(x=df['Day'], y=df['Kcmax'], mode='lines', name='Kcmax', line=dict(color='gray')))
+
+    # Update layout to add labels and title
+    fig.update_layout(
+        title="Time Series of Kcadj, Ke, Kcb, and Kcmax",
+        xaxis_title="Day",
+        yaxis_title="Coefficient Values",
+        legend_title="Legend",
+        xaxis=dict(
+            tickmode='linear',  # Linear mode for custom ticks
+            dtick=5             # Tick interval of 5 days
+        ),
+        legend=dict(x=0.5, xanchor='center', y=1.1, orientation='h'),  # Legend positioning
+        template='plotly_white'  # Clean background
+    )
+
+    # Show the plot
+    fig.show()
     return summary_csv_path
 
 def main():
     base_dir = os.path.join(os.path.dirname(__file__), "results")
     # years_to_simulate = range(1989, 2020)
     years_to_simulate = range(2017, 2018)
-    crops = ['DSR', 'Wheat', 'Maize']
-    # crops = ['Wheat']
+    # crops = ['DSR', 'Potato', 'Maize']
+    crops = ['Maize']
 
     all_summary_paths = []
 

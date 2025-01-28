@@ -1,10 +1,10 @@
 ************************************************************************
 pyfao56: FAO-56 Evapotranspiration in Python
 Weather Data
-Timestamp: 01/17/2025 09:45:34
+Timestamp: 01/27/2025 19:45:10
 ************************************************************************
-Comments: CSSRI Karnal 2018
-Source:   IMD & ISIMIP
+Comments: Maize CSSRI Karnal 2017
+Source: IMD & ISIMIP
 ************************************************************************
            S Reference crop - Short ('S') or Tall ('T')
  252.649870 Weather station elevation (z) (m)

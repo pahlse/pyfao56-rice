@@ -263,10 +263,9 @@ class Model:
             io.thetaR = 0.0971
 
             io.Se = sorted([0, (io.theta0 - io.thetaWP)/ (io.thetaS - io.thetaWP), 1])[1]
-            # io.K = sorted([0, io.Ksat * io.Se**0.5 * (1 - (1 - io.Se**(1/io.m))**io.m)**2, io.Ksat])[1]
-            io.K = io.Ksat
+            io.K = sorted([0, io.Ksat * io.Se**0.5 * (1 - (1 - io.Se**(1/io.m))**io.m)**2, io.Ksat])[1]
 
-
+            io.fDs = 0
             io.DAW = 0
             io.Veff = 0
             io.Vp = 0
@@ -295,10 +294,10 @@ class Model:
                 io.Vr = sorted([0.0, io.Veff - io.Vp - io.Vs, io.TAW])[1]
 
                 io.Ds = sorted([0.0, io.DAW - io.Vp, io.Bundh])[1]
+                io.fDs = 1.0 - ((io.DAW - io.Ds) / io.DAW)
 
         #Initial root zone soil water depletion fraction (fDr, mm/mm)
         io.fDr = 1.0 - ((io.TAW - io.Dr) / io.TAW)
-        io.fDs = 1.0 - ((io.DAW - io.Ds) / io.DAW)
         io.Ks = 1.0
         io.h = io.hini
         io.Zr = io.Zrini
@@ -354,8 +353,9 @@ class Model:
             if math.isnan(io.rhmin):
                 io.rhmin = 45.
             io.idep = 0.0
-            # io.ieff = 100
-            io.ieff = self.autoirr.aidata.loc[0,'ieff']
+            io.ieff = 100
+            # io.ieff = self.autoirr.aidata.loc[0,'ieff']
+
             if self.irr is not None:
                 if mykey in self.irr.idata.index:
                     io.idep = self.irr.idata.loc[mykey,'Depth']
@@ -444,7 +444,7 @@ class Model:
                     #NOTE: This is not working as desird. Vp gets triggered, but rate 
 
                     wdpth = self.autoirr.aidata.loc[i,'wdpth']
-                    rate = max([0.0, io.Dr + io.Ds + wdpth - reduceirr])
+                    rate = max([0.0, io.Dr + wdpth - reduceirr])
 
                     if io.fDs >= self.autoirr.aidata.loc[i,'madDs']:
                         wdpth = self.autoirr.aidata.loc[i,'wdpth']
@@ -527,7 +527,8 @@ class Model:
             'Runoff': sum(self.odata['Runoff']),
             'Irrig': sum(self.odata['Irrig']),
             'IrrLoss': sum(self.odata['Irrig'] *  (100 - io.ieff)/100),
-            'Gross_Irrig': sum(self.odata['Irrig'] + self.odata['Irrig'] * (100 - io.ieff)/100),
+            # 'Gross_Irrig': sum(self.odata['Irrig'] + self.odata['Irrig'] * (100 - io.ieff)/100),
+            'Gross_Irrig': sum(self.odata['Irrig'] + self.odata['Irrig'] * 0.3),
             'Num_Irrig': len(self.odata[self.odata['Irrig'] > 0]),  # Count of non-zero irrigation values
             'Mean_Irrig': self.odata[self.odata['Irrig'] > 0]['Irrig'].mean(),  # Mean of non-zero irrigation values
             'Dr_ini': self.odata.loc[sdoy, 'Dr'],
@@ -579,7 +580,7 @@ class Model:
         # io.Zr = max([io.Zrini + (io.Zrmax-io.Zrini)*(io.tKcb-io.Kcbini)/
         #              (io.Kcbmid-io.Kcbini),0.001,io.Zr])
         
-        #Root depth (Zr, m) - FAO-56 page 279; based on DOY <- CROPWAT method
+        #Root depth (Zr, m) - FAO-56 page 279; based on DOY <- CROPWAT 8.0 method
         if io.Zr < io.Zrmax and not io.puddled:
             io.Zr = max([io.Zrini + (io.Zrmax-io.Zrini)*io.i/
                        (io.Lini + io.Ldev),0.001,io.Zr])
@@ -607,11 +608,7 @@ class Model:
         #Losses due to irrigation inefficiency (irrloss, mm)
         io.irrloss = io.idep * (1 - io.ieff / 100.)
 
-        # Surface runoff (runoff, mm)
         io.runoff = 0.0
-        runoff_irr = 0.0
-        runoff_rain = 0.0
-
         if io.roff is True:
             #Method per ASCE (2016) Eqs. 14-12 to 14-20, page 451-454
             CN1 = io.CN2/(2.281-0.01281*io.CN2) #ASCE (2016) Eq. 14-14
@@ -633,29 +630,11 @@ class Model:
             else:
                 io.runoff = 0.0
 
-#------------------------------------------------------------------------
-            #Naive implementation of runoff under ponding conditions
-            #Will definatly fail in edge cases; e.g. where irrigation and 
-            #rain occur on the same day. Definatly needs work!
-            #if io.ponded is True:
-            #    #Irrigation runoff (mm)
-            #    if io.idep + io.Vp > io.Bundh:
-            #        runoff_irr = io.idep + io.Vp - io.Bundh
-            #        io.irrloss += runoff_irr
-            #    #Percipitation runoff (mm)
-            #    if io.rain + io.Vp > io.Bundh:
-            #        runoff_rain = io.rain + io.Vp - io.Bundh
-            #        io.runoff = runoff_rain
-
         #Effective irrigation (mm)
         effirr = max(0, io.idep - io.irrloss)
 
         #Effective precipitation (mm)
         effrain = max(0, io.rain - io.runoff)
-        
-        #Total Runoff (mm) accounting for irrigation and rain runoff
-        io.runoff = runoff_irr + runoff_rain
-#------------------------------------------------------------------------
 
         #Fraction soil surface wetted (fw) - FAO-56 Table 20, page 149
         if io.idep > 0.0 and io.rain > 0.0:
@@ -674,8 +653,11 @@ class Model:
         #Exposed & wetted soil fraction (few, 0.01-1.0) - FAO-56 Eq. 75
         io.few = sorted([0.01,min([1.0-io.fc, io.fw]),1.0])[1]
 
-        #Evaporation reduction coefficient (Kr, 0-1) - FAO-56 Eq. 74
-        io.Kr = sorted([0.0,(io.TEW-io.De)/(io.TEW-io.REW),1.0])[1]
+        if io.Dr == 0:
+            io.Kr = 1.0
+        else:
+            #Evaporation reduction coefficient (Kr, 0-1) - FAO-56 Eq. 74
+            io.Kr = sorted([0.0,(io.TEW-io.De)/(io.TEW-io.REW),1.0])[1]
 
         #Evaporation coefficient (Ke) - FAO-56 Eq. 71
         io.Ke = min([io.Kr*(io.Kcmax-io.Kcb), io.few*io.Kcmax])
@@ -706,7 +688,9 @@ class Model:
 
             if self.ponded:
                 #Root zone drainable available water (DAW, mm)
+                #For rice the value of p is 0.2 of SATURATION (FAO-56 Table 22, p. 164)
                 io.DAW = 1000. * (io.thetaS - io.thetaFC) * io.Zr
+                io.SAW = io.TAW + io.DAW # 'Saturated Available Water'
 
         #Fraction depleted TAW (p, 0.1-0.8) - FAO-56 p162 and Table 22
         if io.cons_p is True:
@@ -715,17 +699,26 @@ class Model:
             io.p = sorted([0.1,io.pbase+0.04*(5.0-io.ETc),0.8])[1]
 
         #Readily available water (RAW, mm) - FAO-56 Equation 83
-        # io.RAW = io.p * io.TAW
-        io.RAW = io.p * io.DAW
+        io.RAW = io.p * io.TAW
+
 
         #Transpiration reduction factor (Ks, 0.0-1.0)
-        if io.aq_Ks is True:
+        if io.aq_Ks is True and io.ponded is True:
             #Ks method from AquaCrop
-            rSWD = io.Dr/io.TAW
+            rSWD = (io.Dr + io.Ds) / io.SAW
             Drel = (rSWD-io.p)/(1.0-io.p)
             sf = 1.5
             aqKs = 1.0-(math.exp(sf*Drel)-1.0)/(math.exp(sf)-1.0)
             io.Ks = sorted([0.0, aqKs, 1.0])[1]
+        elif io.aq_Ks is True:
+            #Ks method from AquaCrop
+            rSWD = io.Dr / io.TAW
+            Drel = (rSWD-io.p)/(1.0-io.p)
+            sf = 1.5
+            aqKs = 1.0-(math.exp(sf*Drel)-1.0)/(math.exp(sf)-1.0)
+            io.Ks = sorted([0.0, aqKs, 1.0])[1]
+        elif io.ponded is True:
+            io.Ks = sorted([0.0,(io.SAW-(io.Dr+io.Ds))/((1-io.p)*io.SAW),1.0])[1]
         else:
             #FAO-56 Eq. 84
             io.Ks = sorted([0.0,(io.TAW-io.Dr)/(io.TAW-io.RAW),1.0])[1]
@@ -740,14 +733,13 @@ class Model:
         io.T = (io.Ks * io.Kcb) * io.ETref
         
         # # Modify Ksat based on vanGenuchten and previous Theta0
-        # io.theta0 = io.Veff/(1000*io.Zr) + io.thetaWP
-        # io.Se = sorted([0, (io.theta0 - io.thetaWP)/ (io.thetaS - io.thetaWP), 1])[1]
-        # io.K = sorted([0, io.Ksat * io.Se**0.5 * (1 - (1 - io.Se**(1/io.m))**io.m)**2, io.Ksat])[1]
+        io.theta0 = io.Veff/(1000*io.Zr) + io.thetaWP
+        io.Se = sorted([0, (io.theta0 - io.thetaWP)/ (io.thetaS - io.thetaWP), 1])[1]
+        io.K = sorted([0, io.Ksat * io.Se**0.5 * (1 - (1 - io.Se**(1/io.m))**io.m)**2, io.Ksat])[1]
 
         #Water balance methods
         if io.solmthd == 'D':
             if self.ponded:
-
 
                 # Total soil moisture in puddle (Veff, mm)
                 Veff = io.Veff + effrain + effirr - io.ETcadj - io.DP
@@ -768,12 +760,16 @@ class Model:
                 #Root zone residual soil water depletion (Dr,mm)
                 io.Dr = max(0.0, io.TAW - io.Vr)
 
+                #Saturation zone soil water depletion fraction (fDr, mm/mm)
+                io.fDs = 1.0 - ((io.DAW - io.Ds) / io.DAW)
+
+
 #--- Original Code --------------------------------------------------------
             else:
                 #Deep percolation (DP, mm) - FAO-56 Eq. 88
                 #Boundary layer is considered at the root zone depth (Zr)
                 DP = effrain + effirr - io.ETcadj - io.Dr
-                io.DP = sorted([0.0,DP,io.K])[1]
+                io.DP = max([DP,0.0])
 
                 #Root zone soil water depletion (Dr,mm) - FAO-56 Eqs.85 & 86
                 Dr = io.Dr - effrain - effirr + io.ETcadj + io.DP
@@ -781,8 +777,5 @@ class Model:
 
             #Root zone soil water depletion fraction (fDr, mm/mm)
             io.fDr = 1.0 - ((io.TAW - io.Dr) / io.TAW)
-
-            #Saturation zone soil water depletion fraction (fDr, mm/mm)
-            io.fDs = 1.0 - ((io.DAW - io.Ds) / io.DAW)
 
             io.theta0 = io.Veff / (1000*io.Zr) + io.thetaWP

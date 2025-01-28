@@ -14,7 +14,7 @@ class Landprep:
         self.comment = 'Comments: ' + comment.strip()
         self.tmstmp = datetime.datetime.now()
         self.cnames = ['Date', 'Year', 'DOY', 'DOW', 'Day', 'ETref',
-                'ETc', 'ETcadj', 'E', 'K', 'Kr', 'Kcadj', 'De', 'DPe',
+                'ETc', 'ETcadj', 'Kcmax', 'fw', 'E', 'K', 'Kr', 'De', 'DPe',
                 'Irrig', 'IrrLoss', 'Rain', 'Runoff', 'DP', 'TAW', 'DAW',
                 'Veff', 'Vp', 'Vs', 'Vr', 'Ds', 'Dr', 'fDr', 'fDs', 'theta0']
 
@@ -32,7 +32,7 @@ class Landprep:
         ast='*'*72
 
         keys = [ 'Year-DOY', 'Date', 'Year', 'DOY', 'DOW', 'Day', 'ETref',
-                'ETc', 'ETcadj', 'E', 'K', 'Kr', 'Kcadj', 'De', 'DPe',
+                'ETc', 'ETcadj', 'Kcmax', 'fw', 'E', 'K', 'Kr', 'De', 'DPe',
                 'Irrig', 'IrrLoss', 'Rain', 'Runoff', 'DP', 'TAW', 'DAW',
                 'Veff', 'Vp', 'Vs', 'Vr', 'Ds', 'Dr', 'fDr', 'fDs', 'theta0']
 
@@ -62,8 +62,9 @@ class Landprep:
             # Crop parameters
             'K': '{:7.3f}'.format,
             'Kr': '{:7.3f}'.format,
-            'Kcadj': '{:7.3f}'.format,
+            'Kcmax': '{:7.3f}'.format,
             # Evaporation
+            'fw': '{:7.3f}'.format,
             'De': '{:7.3f}'.format,
             'DPe': '{:7.3f}'.format,
             # Surface components
@@ -196,12 +197,17 @@ class Landprep:
         io.Kcdry = self.par.Kcdry
         io.Kcwet = self.par.Kcwet
         io.Puddays = self.par.Puddays
+        io.hini    = self.par.hini
 
         io.thetaFC = self.par.thetaFC
         io.thetaWP = self.par.thetaWP
         io.theta0  = self.par.theta0
         io.thetaS  = self.par.thetaS
         io.Ksat    = self.par.Ksat
+
+        io.fw = 1.0
+        io.h = io.hini
+        io.wndht  = self.wth.wndht
 
         io.Zp = self.par.Zp
         io.Ze = self.par.Ze
@@ -211,7 +217,9 @@ class Landprep:
 
         io.ieff = self.ieff
 
-        io.lamb = 1 / io.Puddays * math.log(io.Ksat**0.55 / io.Ksat)
+        io.lamb = 1 / io.Puddays * math.log(io.Ksat**0.33 / io.Ksat)
+
+        io.DP = 0.0
 
         #Total evaporable water (TEW, mm) - FAO-56 Eq. 73
         io.TEW = 1000. * (io.thetaFC - 0.50 * io.thetaWP) * io.Ze
@@ -277,10 +285,9 @@ class Landprep:
             io.ieff = 100.0
 
             if io.i < io.Lprp - io.Puddays:
-                if io.Dr > 20:
-                    io.idep = io.Ds + io.Dr
+                io.idep = io.Ds + io.Dr
             elif io.Vp < io.Wdpud:
-                io.idep = io.Ds + io.Dr + io.Wdpud + io.DP
+                io.idep = io.Ds + io.Dr + io.Wdpud
 
             #Advance timestep
             self._advance(io)
@@ -292,7 +299,7 @@ class Landprep:
             dat = tcurrent.strftime('%Y-%m-%d') #Date yyyy-mm-dd
 
             data = [ dat, year, doy, dow, str(io.i), io.ETref, io.ETc,
-                    io.ETcadj, io.E, io.K, io.Kr, io.Kcadj, io.De, io.DPe,
+                    io.ETcadj, io.Kcmax, io.fw, io.E, io.K, io.Kr, io.De, io.DPe,
                     io.idep, io.irrloss, io.rain, io.runoff, io.DP, io.TAW,
                     io.DAW, io.Veff, io.Vp, io.Vs, io.Vr, io.Ds, io.Dr,
                     io.fDr, io.fDs, io.theta0 ]
@@ -341,37 +348,42 @@ class Landprep:
         #Effective precipitation (mm)
         effrain = max(0, io.rain - io.runoff)
         
-        io.K = io.Ksat
-
-        io.K = sorted([io.Ksat**0.55, 
+        io.K = sorted([io.Ksat**0.33, 
                         io.Ksat * math.exp(io.lamb * (io.i + 1 - io.Lprp + io.Puddays)), 
                         io.Ksat])[1]
 
-        #Evaporation reduction coeff. under exposed soil (Kr, mm) - FAO-56 Eq. 74
-        io.Kr = sorted([0.0,(io.TEW-io.De)/(io.TEW-io.REW),1.0])[1]
 
-        #Adjusted crop coefficient (Kcadj) - FAO-56 Eq. 80
-        if io.Vp > 0:
-            io.Kcadj = io.Kcwet
-            io.ETc = io.Kcwet * io.ETref
+        #Upper limit crop coefficient (Kcmax) - FAO-56 Eq. 72
+        u2 = io.wndsp * (4.87/math.log(67.8*io.wndht-5.42))
+        u2 = sorted([1.0,u2,6.0])[1]
+        rhmin = sorted([20.0,io.rhmin,80.0])[1]
+
+        io.Kcmax = 1.2+(0.04*(u2-2.0)-0.004*(rhmin-45.0))* (io.h/3.0)**.3
+
+        if io.Dr == 0:
+            io.Kr = 1.0
         else:
-            io.Kcadj = io.Kr * io.Kcdry
-            io.ETc = io.Kcdry * io.ETref
+            #Evaporation reduction coefficient (Kr, 0-1) - FAO-56 Eq. 74
+            io.Kr = sorted([0.0,(io.TEW-io.De)/(io.TEW-io.REW),1.0])[1]
 
-        #Adjusted crop evapotranspiration (ETcadj, mm) - FAO-56 Eq. 80
-        io.ETcadj = io.Kcadj * io.ETref
+        #Soil water evaporation (E, mm) - FAO-56 Eq. 69
+        io.E = io.Kcmax * io.ETref
 
-        io.E = io.ETcadj
+        io.ETc = io.E 
+        io.ETcadj = io.E
+
+        # NOTE: DPe is used for De and De is used for Kr further up. They
+        # reference eachother!
 
         #Deep percolation under exposed soil (DPe, mm) - FAO-56 Eq. 79
-        DPe = effrain + effirr - io.De
+        DPe = effrain + effirr/io.fw - io.De
         io.DPe = sorted([0.0, DPe, io.K])[1]
 
         #Cumulative depth of evaporation (De, mm) - FAO-56 Eqs. 77 & 78
-        De = io.De - effrain - effirr + io.E + io.DPe
+        De = io.De - effrain - effirr/io.fw + io.E/io.fw + io.DPe
         io.De = sorted([0.0,De,io.TEW])[1]
 
-        Veff = io.Veff + effrain + effirr - io.ETcadj - io.DP
+        Veff = io.Veff + effrain + effirr - io.E - io.DP
         io.Veff = max([Veff, 0.0])
 
         # Ponding depth (Vp, mm)

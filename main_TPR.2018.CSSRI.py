@@ -20,6 +20,7 @@ The main.py module contains the following:
 
 from datetime import datetime, timedelta
 import pandas as pd
+import plotly.graph_objects as go
 import os
 
 from src.autoirrigate import AutoIrrigate
@@ -93,17 +94,17 @@ def run():
     par.Puddays = 4
     par.hini = 0.05
     par.hmax = 1.1
-    par.thetaFC = 0.2373
-    par.thetaWP = 0.1142
-    par.theta0 = 0.0555
-    par.thetaS = 0.3725
+    par.thetaFC = 0.279509
+    par.thetaWP = 0.156771
+    par.theta0 = 0.09707
+    par.thetaS = 0.36635
     par.Ksat = 49
-    par.Zrini = 0.4
+    par.Zrini = 0.05
     par.Zrmax = 0.4
     par.Zp = 0.4
     par.Bundh = 0.3
     par.Wdpud = 50
-    par.pbase = 0.6
+    par.pbase = 0.2
     par.Ze = 0.1
     par.REW =10
     par.CN2 = 70
@@ -186,12 +187,12 @@ def run():
                 # mad=0.2, 
                 # madDs=0.8,
                 madVp=10.0,    #[mm]
-                wdpth=70,    #[mm]
+                wdpth=150,    #[mm]
                 # fpday=1, # Forcasting days 
                 # fpdep=1, # Forcasting for forcasting precipitation depth
                 # fpact='cancel', # What to do if forcast sais rain
-                dsli=3,  # Days since last irrigation event
-                dsle=3,  # Days since last watering event
+                # dsli=3,  # Days since last irrigation event
+                # dsle=3,  # Days since last watering event
                 # evnt=20, # Minimum depth of percip and irr to be considered a watering event (float, mm)
                 # icon=70,
                 ieff=100)
@@ -284,8 +285,7 @@ def run():
         'Rain': df['Rain'].sum(), 
         'Runoff': df['Runoff'].sum(), 
         'Irrig': df['Irrig'].sum(), 
-        'IrrLoss': df['IrrLoss'].sum(), 
-        'Gross_Irrig': df['Irrig'].sum() + df['IrrLoss'].sum(), 
+        'Gross_Irrig': df['Irrig'].sum() + df['Irrig'].sum() * 0.3, 
         # 'Gross_Irrig': df['Irrig'].sum() + df['IrrLoss'].sum(), 
         'Num_Irrig': len(df[df['Irrig'] > 0]), 
         'Mean_Irrig': df[df['Irrig'] > 0]['Irrig'].mean(), 
@@ -297,6 +297,33 @@ def run():
 
     savesums(swbdata, filepath=os.path.join(output_dir,f'TPR_2018_CSSRI.sum'))
 
+    # write df to csv 
+    df.to_csv(os.path.join(output_dir,f'TPR_2018_CSSRI.csv'), index=False)
+
+    fig = go.Figure()
+
+    # Add traces (lines) for each of the variables: Kcadj, Ke, Kcb, Kcmax
+    # fig.add_trace(go.Scatter(x=df['Day'], y=df['Kcadj'], mode='lines', name='Kcadj', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=df['Day'], y=df['Ke'], mode='lines', name='Ke', line=dict(color='lightblue')))
+    fig.add_trace(go.Scatter(x=df['Day'], y=df['Kcb'], mode='lines', name='Kcb', line=dict(color='darkgreen')))
+    # fig.add_trace(go.Scatter(x=df['Day'], y=df['Kcmax'], mode='lines', name='Kcmax', line=dict(color='gray')))
+
+    # Update layout to add labels and title
+    fig.update_layout(
+        title="Time Series of Kcadj, Ke, Kcb, and Kcmax",
+        xaxis_title="Day",
+        yaxis_title="Coefficient Values",
+        legend_title="Legend",
+        xaxis=dict(
+            tickmode='linear',  # Linear mode for custom ticks
+            dtick=5             # Tick interval of 5 days
+        ),
+        legend=dict(x=0.5, xanchor='center', y=1.1, orientation='h'),  # Legend positioning
+        template='plotly_white'  # Clean background
+    )
+
+    # Show the plot
+    # fig.show()
 
 if __name__ == '__main__':
    run()

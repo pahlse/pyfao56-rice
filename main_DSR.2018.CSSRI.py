@@ -20,6 +20,7 @@ The main.py module contains the following:
 
 from datetime import datetime, timedelta
 import pandas as pd
+import plotly.graph_objects as go
 import os
 
 from src.autoirrigate import AutoIrrigate
@@ -33,15 +34,15 @@ from src.weather import Weather
 from src.custom.plots import WBPlot
 
 def run(year, base_dir):
-    # Get the relevant directory
+
     output_dir = os.path.join(base_dir, str(year))
     os.makedirs(output_dir, exist_ok=True)
 
     # Specify the model parameters
-    par = Parameters(comment = 'DSR Rice for CSSRI Karnal, 2018')
+    par = Parameters(comment = 'DSR Rice for CSSRI Karnal')
 
     par.Kcbini = 0.15
-    par.Kcbmid = 1.15
+    par.Kcbmid = 1.00
     par.Kcbend = 0.75
     par.Lini = 30
     par.Ldev = 45
@@ -53,8 +54,7 @@ def run(year, base_dir):
     par.thetaWP = 0.156771
     par.theta0 = 0.09707
     par.thetaS = 0.36635
-    # par.Ksat = 49.0807
-    par.Ksat = 8 # Estimated by Proloy
+    par.Ksat = 49.0807
     par.Zrini = 0.2
     par.Zrmax = 0.6
     par.Bundh = 0.3
@@ -101,10 +101,6 @@ def run(year, base_dir):
     wth.wdata['MorP'] = 'M'
     wth.wdata.index = weather_data['YEAR'].astype(str) + '-' + weather_data['DOY']
 
-    wth.savefile(os.path.join(output_dir,f'CSSRI_IMD_daily_{year}.wth'))
-
-
-
 # ------------------------------------------------------------------------------------- #
 # Irrigation Data
 # ------------------------------------------------------------------------------------- #
@@ -123,13 +119,13 @@ def run(year, base_dir):
     irrig_cutoff_doy = irrig_cutoff.strftime('%Y-%j')
 
     airr = AutoIrrigate()
-    airr.addset(planting_doy, irrig_cutoff_doy, 
-                # madDs=0.43,      # irrigate at 10 kPa (float, frac)
-                madDs=0.74,      # irrigate at 20 kPa (float, frac)
+    airr.addset(planting_doy, irrig_cutoff_doy,
+                # for a derivation of these fractions see my 00_soil_data.ods file
+                madDs=0.43,      # irrigate at 10 kPa (float, frac)
+                # madDs=0.74,      # irrigate at 20 kPa (float, frac)
                 # madDs=0.95,      # irrigate at 30 kPa (float, frac)
-                # madDr=0.07,      # irrigate at 40 kPa (float, frac)
-                # madVp=10.0,      #[float, mm]
-                wdpth=30,    #[mm]
+                # mad=0.07,      # irrigate at 40 kPa (float, frac)
+                wdpth=0,    #[mm]
                 fpday=1, # Forcasting days 
                 fpdep=1, # Forcasting for forcasting precipitation depth
                 fpact='cancel', # What to do if forcast sais rain
@@ -168,11 +164,41 @@ def run(year, base_dir):
     summary_df.to_csv(summary_csv_path, index=False)
     print(f'Summary data saved to {summary_csv_path}')
 
+    # write df to csv 
+    mdl.odata.to_csv(os.path.join(output_dir,f'DSR_{year}_CSSRI.csv'), index=False)
+
+    df = mdl.odata
+    fig = go.Figure()
+
+    # Add traces (lines) for each of the variables: Kcadj, Ke, Kcb, Kcmax
+    fig.add_trace(go.Scatter(x=df['Day'], y=df['Kcadj'], mode='lines', name='Kcadj', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=df['Day'], y=df['Ke'], mode='lines', name='Ke', line=dict(color='lightblue')))
+    fig.add_trace(go.Scatter(x=df['Day'], y=df['Kcb'], mode='lines', name='Kcb', line=dict(color='darkgreen')))
+    fig.add_trace(go.Scatter(x=df['Day'], y=df['Kcmax'], mode='lines', name='Kcmax', line=dict(color='gray')))
+
+    # Update layout to add labels and title
+    fig.update_layout(
+        title="Time Series of Kcadj, Ke, Kcb, and Kcmax",
+        xaxis_title="Day",
+        yaxis_title="Coefficient Values",
+        legend_title="Legend",
+        xaxis=dict(
+            tickmode='linear',  # Linear mode for custom ticks
+            dtick=5             # Tick interval of 5 days
+        ),
+        legend=dict(x=0.5, xanchor='center', y=1.1, orientation='h'),  # Legend positioning
+        template='plotly_white'  # Clean background
+    )
+
+    # Show the plot
+    fig.show()
+
     return summary_csv_path  # Return the path of the summary CSV
 
 def main():
     # Base output directory
-    base_dir = os.path.join(os.path.dirname(__file__), "results")
+    today = datetime.now().strftime("%Y%m%d")
+    base_dir = os.path.join(os.path.dirname(__file__), f"results_{today}")
 
     # Define the range of years to simulate
     years_to_simulate = range(1989, 2020)
