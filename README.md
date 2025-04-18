@@ -4,9 +4,9 @@ Author: Elias Pahls\
 Date:   18/04/2025
 
 This repository contains a fork of the `pyfao56` package that was developed
-in the scope of my MSc [thesis][./docs/MSc.Thesis.Elias.Pahls.Modeling.FAO56.IRRI.India-compact.pdf] at Wageningen University, The Netherlands. The
+in the scope of my MSc [thesis](./docs/MSc.Thesis.Elias.Pahls.Modeling.FAO56.IRRI.India-compact.pdf) at Wageningen University, The Netherlands. The
 specific objectives were to adapt the original FAO56 methodology to paddy and
-direct-seeded rice conditions based on CROPWAT 8.0 and  [van Genuchten et al. (1980)][./docs/vanGenuchten1980.pdf].[^1] 
+direct-seeded rice conditions based on CROPWAT 8.0 and  [van Genuchten et al. (1980)](./docs/vanGenuchten1980.pdf).[^1] 
 Details on the concepts and methods used can be found in Sections 2.2 and 3.2 of
 the thesis.
 
@@ -53,7 +53,7 @@ following additional parameters are proposed:
 #### 1. Water Storage Potentials
 - **Root Zone Drainable Water (DAW)**\
   Similar to `TAW`, `DAW` represents all
-  potential water storable in the root zone from Saturation $\theta_{Sat}$ to
+  potential water storable in the root zone from Saturation `theta`$_{Sat}$ to
   Field Capacity $\theta_{FC}$.
  
 - **Max Ponding Water** \
@@ -183,7 +183,7 @@ The following additions to `model.py` are propoesd:
 - [ ] Include the nursery phase as a seperate module to allow for simulation of
       the entire rice cropping cycle. This could be done based on CROPWAT 8.0
 - [ ] Integrate pedotransfer functions (using e.g. the
-      [pedon][https://github.com/martinvonk/pedon] python package) to estimate
+      [pedon](https://github.com/martinvonk/pedon) python package) to estimate
       soil hydraulic properties from soil texture and bulk density.
 
 ## References
