@@ -53,8 +53,7 @@ following additional parameters are proposed:
 #### 1. Water Storage Potentials
 - **Root Zone Drainable Water (DAW)**\
   Similar to `TAW`, `DAW` represents all
-  potential water storable in the root zone from Saturation `theta`$_{Sat}$ to
-  Field Capacity $\theta_{FC}$.
+  potential water storable in the root zone from Saturation to Field Capacity.
  
 - **Max Ponding Water** \
   This is the max above-surface water in the paddy and
@@ -62,7 +61,7 @@ following additional parameters are proposed:
  
 #### 2. Dynamic Water Content in Paddy
 
-Unlike the original FAO56 approach where $D_{r,i}$ (root zone depletion) is
+Unlike the original FAO56 approach where the root zone depletion `Dr` is
 directly calculated from all applicable water balance components the paddy
 scenario is more complex. Water can be stored in three distinct storage
 components above or below ground (call them 'buckets') which are each governed
@@ -174,7 +173,7 @@ The following additions to `model.py` are propoesd:
 ## Scope for Future Work 
 
 - [ ] Replace volumetric water content by matric potential head as the primary
-      state variable to calculate `K`. This could reduce model complexity.
+      state variable to calculate `K`, `Dr`, `Ds` etc. This could reduce model complexity.
 - [ ] Expand soil conductivity functionality to the `SoilProfile` class to allow
       for spatially variable soil properties and time-varying hydraulic
       conductivity. Might get complicated fast!
