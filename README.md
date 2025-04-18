@@ -1,32 +1,48 @@
 # pyfao56 Adaptations for Paddy Fields
 
 Author: Elias Pahls\
-Date:   13/12/2024
+Date:   18/04/2025
+
+This repository contains a fork of the `pyfao56` package that was developed
+in the scope of my MSc [thesis][./docs/MSc.Thesis.Elias.Pahls.Modeling.FAO56.IRRI.India-compact.pdf] at Wageningen University, The Netherlands. The
+specific objectives were to adapt the original FAO56 methodology to paddy and
+direct-seeded rice conditions based on CROPWAT 8.0 and  [van Genuchten et al. (1980)][./docs/vanGenuchten1980.pdf].[^1] 
+Details on the concepts and methods used can be found in Sections 2.2 and 3.2 of
+the thesis.
 
 ## TL-DR
 
 This package expands on the `pyfao56` package
 ([kthorp/pyfao56](https://github.com/kthorp/pyfao56)) by implementing most of
-the original CROPWAT 8.0 functionalities for paddy conditions. The main
-proposed additions are:
+the original CROPWAT 8.0 functionalities for paddy conditions and expandes the
+original FAO56 methodology by parameterizing hydraulic conductivity `K` based
+on van Genuchten et al. (1980)[^1]. The main additions are:
 
-- Daily water balance calculation based on available soil moisture `Veff`
-- Deep percolation based on `Ksat`
-- User-definable landpreparation stage in `landprep.py`
+- Daily water balance calculation based on all water in the paddy (surface,
+  saturation, root-zone) represented by `Veff`
+- Deep percolation based on variable `K` and van Genuchten soil parameters.
+- User-definable landpreparation stage in `landprep.py` to calculate water
+  requirments for land preparation and establish initial water balance 
 
 A 'working' example can be found in `main.py` to showcase the adaptations.
 
+## Pending Tasks
+
+- [ ] Update README to include all new parameters, describe landprep.py and van
+      Genuchten method.
+- [ ] Reduce code in main-DSR.py and main-TPR.py to minimal working example.
+- [ ] Clean up data and results dirs.
+
 ## Concepts and Methodology
 
-Originaly FAO56 assumes that following a heavy rain or irrigation turn all
-water above field capacity is lost to percolation on the same day. For paddy
+Originaly FAO56 assumes that following a heavy rain or irrigation all water
+above field capacity is lost to percolation on the same day. For paddy
 conditions this is problematic, because traditionally, a puddle is established
 through land preparation called "puddling" which significantly reduces
 percolation. A perched water table is then maintained in the field for optimal
 plant growth. For the soil water balance this means that field conditions are
 kept at or above saturation with continuous percolation throught most of the
-season. As the pyfao56 package stands now, this condition cannot be
-represented.
+season. As the pyfao56 package stands now, this condition cannot be represented.
 
 ### Defining the Water Balance
 
@@ -155,9 +171,23 @@ The following additions to `model.py` are propoesd:
   io.Dr = max(0.0, io.TAW - io.Vr)
   ```
 
-## To-Do's 
+## Scope for Future Work 
 
-- [ ] What happens to `Ks`????
-- [x] Write a `landprep.py` script containing its own class and modules.
-- [ ] Calculate `runoff` from excess rain and irrigation based on bund hight
-- [ ] Add `if clauses` that paddy can be puddled but not ponded or ponded but not puddled.
+- [ ] Replace volumetric water content by matric potential head as the primary
+      state variable to calculate `K`. This could reduce model complexity.
+- [ ] Expand soil conductivity functionality to the `SoilProfile` class to allow
+      for spatially variable soil properties and time-varying hydraulic
+      conductivity. Might get complicated fast!
+- [ ] Integrate `landprep.py` directly into `model.py` instead of calling it
+      from `main.py`
+- [ ] Include the nursery phase as a seperate module to allow for simulation of
+      the entire rice cropping cycle. This could be done based on CROPWAT 8.0
+- [ ] Integrate pedotransfer functions (using e.g. the
+      [pedon][https://github.com/martinvonk/pedon] python package) to estimate
+      soil hydraulic properties from soil texture and bulk density.
+
+## References
+
+[^1]: van Genuchten, M. T. (1980). “A Closed-form Equation for Predicting the Hydraulic
+Conductivity of Unsaturated Soils”. In: Soil Science Society of America Journal
+44.5. url: http://dx.doi.org/10.2136/sssaj1980.03615995004400050002x.

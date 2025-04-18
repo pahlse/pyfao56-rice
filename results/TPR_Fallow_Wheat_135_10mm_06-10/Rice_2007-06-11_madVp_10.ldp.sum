@@ -1,0 +1,26 @@
+************************************************************************
+pyfao56: FAO-56 Evapotranspiration in Python
+Seasonal Water Balance Summary
+Timestamp: 2025-02-11 11:50:30
+Simulation start date: 2007-06-05
+Simulation end date: 2007-06-11
+All values expressed in mm.
+************************************************************************
+Comments: 
+************************************************************************
+      78 : ETref
+      71 : ETc
+      71 : ETcadj
+      71 : E
+       0 : T
+      72 : DP
+      15 : K
+       0 : Rain
+       0 : Runoff
+     261 : Irrig
+       0 : IrrLoss
+     339 : Gross_Irrig
+       3 : Num_Irrig
+      87 : Mean_Irrig
+       0 : Veff_ini
+     121 : Veff_end

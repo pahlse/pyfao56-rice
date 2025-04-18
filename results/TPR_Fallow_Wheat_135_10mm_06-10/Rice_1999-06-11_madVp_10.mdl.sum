@@ -1,0 +1,27 @@
+************************************************************************
+pyfao56: FAO-56 Evapotranspiration in Python
+Seasonal Water Balance Summary
+Timestamp: 2025-02-11 11:50:28
+Simulation start date: 1999-06-11
+Simulation end date: 1999-10-24
+All values expressed in mm.
+************************************************************************
+Comments: 1999 Rice -- CSSRI, Karnal
+************************************************************************
+  698.00 : ETref
+  762.37 : ETc
+  762.37 : ETcadj
+  377.46 : E
+  384.91 : T
+  398.72 : DP
+    2.93 : K
+  315.48 : Rain
+    0.00 : Runoff
+  800.80 : Irrig
+    0.00 : IrrLoss
+ 1041.03 : Gross_Irrig
+    8.00 : Num_Irrig
+  100.10 : Mean_Irrig
+  126.80 : Veff_ini
+   78.88 : Veff_end
+    0.31 : theta0

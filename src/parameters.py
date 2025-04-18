@@ -164,8 +164,6 @@ class Parameters:
            '{:s}\n'
            '{:s}\n'
            '{:s}\n'
-           '{:9.4f} Kcbnrs, Kcb Nursary\n'
-           '{:9.4f} Kcbsoil, Kc Landpreparation\n'
            '{:9.4f} Kcbini, Kcb Initial (FAO-56 Table 17)\n'
            '{:9.4f} Kcbmid, Kcb Mid (FAO-56 Table 17)\n'
            '{:9.4f} Kcbend, Kcb End (FAO-56 Table 17)\n'
@@ -189,7 +187,7 @@ class Parameters:
            '{:9.4f} Ze, Depth of surface evaporation layer (m) (FAO-56 Table 19 and Page 144)\n'
            '{:9.4f} REW, Total depth Stage 1 evaporation (mm) (FAO-56 Table 19)\n'
            '{:9d} CN2, Curve Number for AWCII (ASCE (2016) Table 14-3 or SCS (1972))\n'
-          ).format(ast,timestamp,ast,self.comment,ast,self.Kcbnrs,self.Kcsoil,self.Kcbini,
+          ).format(ast,timestamp,ast,self.comment,ast,self.Kcbini,
                    self.Kcbmid,self.Kcbend,self.Lnrs,self.Lprp,self.Lini,self.Ldev,
                    self.Lmid,self.Lend,self.hini,self.hmax,self.thetaFC,
                    self.thetaWP,self.theta0,self.thetaS,self.Ksat,self.Zrini,

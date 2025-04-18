@@ -13,10 +13,12 @@ class Landprep:
         self.ieff = ieff
         self.comment = 'Comments: ' + comment.strip()
         self.tmstmp = datetime.datetime.now()
-        self.cnames = ['Date', 'Year', 'DOY', 'DOW', 'Day', 'ETref',
-                'ETc', 'ETcadj', 'Kcmax', 'fw', 'E', 'K', 'Kr', 'De', 'DPe',
-                'Irrig', 'IrrLoss', 'Rain', 'Runoff', 'DP', 'TAW', 'DAW',
-                'Veff', 'Vp', 'Vs', 'Vr', 'Ds', 'Dr', 'fDr', 'fDs', 'theta0']
+        self.cnames = ['Date','Year','DOY','DOW','Day','ETref',
+                       'ETc','ETcadj','T','E','p','Ks','h','Zr', 
+                       'fc','tKcb','Kcb','Kcmax','Kc','Kcadj','Ke','Kr','fw',
+                       'few','De','DPe','Irrig','IrrLoss','Rain',
+                       'Runoff','DP','TAW','DAW','RAW','Veff','Vp',
+                       'Vs','Vr','Ds','Dr','fDr', 'fDs', 'theta0','Se','K']
 
         self.odata = pd.DataFrame(columns=self.cnames)
 
@@ -31,10 +33,12 @@ class Landprep:
 
         ast='*'*72
 
-        keys = [ 'Year-DOY', 'Date', 'Year', 'DOY', 'DOW', 'Day', 'ETref',
-                'ETc', 'ETcadj', 'Kcmax', 'fw', 'E', 'K', 'Kr', 'De', 'DPe',
-                'Irrig', 'IrrLoss', 'Rain', 'Runoff', 'DP', 'TAW', 'DAW',
-                'Veff', 'Vp', 'Vs', 'Vr', 'Ds', 'Dr', 'fDr', 'fDs', 'theta0']
+        keys = ['Year-DOY','Date','Year','DOY','DOW','Day','ETref',
+                'ETc','ETcadj','T','E','p','Ks','h','Zr',
+                'fc','tKcb','Kcb','Kcmax','Kc','Kcadj','Ke','Kr','fw',
+                'few','De','DPe','Irrig','IrrLoss','Rain',
+                'Runoff','DP','TAW','DAW','RAW','Veff','Vp',
+                'Vs','Vr','Ds','Dr','fDr', 'fDs', 'theta0','Se','K']
 
         header = (
             f'{keys[0]:>8s}'  # Date
@@ -58,13 +62,25 @@ class Landprep:
             'ETref': '{:7.3f}'.format,
             'ETc': '{:7.3f}'.format,
             'ETcadj': '{:7.3f}'.format,
+            'T': '{:7.3f}'.format,
             'E': '{:7.3f}'.format,
             # Crop parameters
-            'K': '{:7.3f}'.format,
-            'Kr': '{:7.3f}'.format,
+            'p': '{:7.3f}'.format,
+            'Ks': '{:7.3f}'.format,
+            'h': '{:7.3f}'.format,
+            'Zr': '{:7.3f}'.format,
+            'fc': '{:7.3f}'.format,
+            # Kc-values
+            'tKcb': '{:7.3f}'.format,
+            'Kcb': '{:7.3f}'.format,
             'Kcmax': '{:7.3f}'.format,
+            'Kc': '{:7.3f}'.format,
+            'Kcadj': '{:7.3f}'.format,
+            'Ke': '{:7.3f}'.format,
+            'Kr': '{:7.3f}'.format,
             # Evaporation
             'fw': '{:7.3f}'.format,
+            'few': '{:7.3f}'.format,
             'De': '{:7.3f}'.format,
             'DPe': '{:7.3f}'.format,
             # Surface components
@@ -76,6 +92,7 @@ class Landprep:
             'DP': '{:7.3f}'.format,
             'TAW': '{:7.3f}'.format,
             'DAW': '{:7.3f}'.format,
+            'RAW': '{:7.3f}'.format,
             'Veff': '{:7.3f}'.format,
             'Vp': '{:7.3f}'.format,
             'Vs': '{:7.3f}'.format,
@@ -85,6 +102,8 @@ class Landprep:
             'fDr': '{:7.3f}'.format,
             'fDs': '{:7.3f}'.format,
             'theta0': '{:7.3f}'.format,
+            'Se': '{:7.3f}'.format,
+            'K': '{:7.3f}'.format,
         }
 
         s = (
@@ -115,32 +134,6 @@ class Landprep:
             f.write(self.__str__())
             f.close()
 
-    def savecsv(self, filepath='pyfao56_summary.csv'):
-        keys = [
-            'Date', 'DOY', 'Day', 'ETref', 'ETc', 'ETcadj', 'DP', 'Irrig',
-            'IrrLoss', 'Rain', 'Runoff', 'TAW', 'DAW', 'Veff', 'Vp',
-            'Vs', 'Vr', 'Ds', 'Dr', 'fDr'
-        ]
-
-        # Ensure the keys are in the odata columns
-        valid_keys = [key for key in keys if key in self.odata.columns]
-        
-        if not valid_keys:
-            print('No valid keys to save in summary. Please check odata.')
-            return
-
-        # Create a new DataFrame with the selected keys
-        summary_df = self.odata[valid_keys]
-        summary_df = summary_df.round(4)
-
-        try:
-            # Save to CSV
-            summary_df.to_csv(filepath, index=False)
-            print(f"Summary successfully saved to {filepath}")
-        except FileNotFoundError:
-            print('The filepath for the summary data is not found.')
-
-
     def savesums(self, filepath='pyfao56.sum'):
         self.tmstmp = datetime.datetime.now()
         timestamp = self.tmstmp.strftime('%Y-%m-%d %H:%M:%S')
@@ -160,8 +153,9 @@ class Landprep:
             '{:s}\n'
             ).format(ast,timestamp,sdate,edate,ast,self.comment,ast)
         if not self.odata.empty:
-            keys = ['ETref','ETc','ETcadj','DP','Irrig',
-                    'IrrLoss','Rain','Runoff','Veff_ini','Veff_end']
+            keys = [ 'ETref', 'ETc', 'ETcadj', 'E', 'T', 'DP', 'K', 'Rain',
+                    'Runoff', 'Irrig', 'IrrLoss', 'Gross_Irrig', 'Num_Irrig',
+                    'Mean_Irrig', 'Veff_ini', 'Veff_end' ]
             for key in keys:
                 s += '{:8.0f} : {:s}\n'.format(self.swbdata[key],key)
 
@@ -191,7 +185,6 @@ class Landprep:
         io = self.ModelState()
         io.i = 0
 
-        io.Lnrs = self.par.Lnrs
         io.Lprp = self.par.Lprp
         io.Wdpud = self.par.Wdpud
         io.Kcdry = self.par.Kcdry
@@ -203,10 +196,15 @@ class Landprep:
         io.thetaWP = self.par.thetaWP
         io.theta0  = self.par.theta0
         io.thetaS  = self.par.thetaS
+        io.thetaR  = self.par.thetaR
         io.Ksat    = self.par.Ksat
 
         io.fw = 1.0
-        io.h = io.hini
+        io.Kcb = 0.0 # NOTE: See page 207 of FAO-56 (Bare soil case)
+        io.fc = 0.0 # NOTE: See page 207 of FAO-56 (Bare soil case)
+        io.Ks = 0.0 # NOTE: No crop growth so no stress
+        io.h = 0.0 # NOTE: No crop growth -> Kcmax = 1.2
+
         io.wndht  = self.wth.wndht
 
         io.Zp = self.par.Zp
@@ -217,26 +215,34 @@ class Landprep:
 
         io.ieff = self.ieff
 
+        io.p = -99.999
+        io.Zr = -99.999
+        io.tKcb = -99.999
+        io.RAW = 0.0
+
         io.lamb = 1 / io.Puddays * math.log(io.Ksat**0.33 / io.Ksat)
 
-        io.DP = 0.0
+        io.l = 0.50
+        io.n = 1.3055
+        io.m = 1 - 1/io.n
+
+        # Initial K set by traditional van Genuchten method
+        io.Se = sorted([0, (io.theta0 - io.thetaR)/ (io.thetaS - io.thetaR), 1])[1]
+        Kini = sorted([0, io.Ksat * io.Se**0.5 * (1 - (1 - io.Se**(1/io.m))**io.m)**2, io.Ksat])[1]
 
         #Total evaporable water (TEW, mm) - FAO-56 Eq. 73
         io.TEW = 1000. * (io.thetaFC - 0.50 * io.thetaWP) * io.Ze
-        #Initial root zone drainable available water (DAW, mm)
-        io.DAW = 1000. * (io.thetaS - io.thetaFC) * io.Zp
         #Initial depth of evaporation (De, mm) - FAO-56 page 153
         io.De = 1000. * (io.thetaFC - 0.50 * io.thetaWP) * io.Ze
-        #Initial root zone depletion (Dr, mm) - FAO-56 Eq. 87
-        io.Dr = 1000. * (io.thetaFC - io.theta0) * io.Zp
+        #Initial root zone drainable available water (DAW, mm)
+        io.DAW = 1000. * (io.thetaS - io.thetaFC) * io.Zp
         #Initial root zone residual available water (TAW, mm)
         io.TAW = 1000. * (io.thetaFC - io.thetaWP) * io.Zp
-        #By default, FAO-56 doesn't consider the following variables
 
-
-        #Initial effective available moisture (Vtot, mm)
+        #Initial effective available moisture (Veff, mm)
         #NOTE: This accounts for all the water in the paddy and can exceed 
-        #TAW + DAW, hence the different nomenclature to prevent confusion.
+        #TAW + DAW, hence the different nomenclature to prevent confusion. 
+        # Also, note that theta0 cannot exceed thetaWP.
         io.Veff = 1000 * (io.theta0 - io.thetaWP) * io.Zp
         # Initial ponding depth (Vp, mm)
         io.Vp = sorted([0.0, io.Veff - io.DAW - io.TAW, io.Bundh])[1]
@@ -245,12 +251,16 @@ class Landprep:
         # Initial residual soil moisture (Vr, mm)
         io.Vr = sorted([0.0, io.Veff - io.Vp - io.Vs, io.TAW])[1]
 
-        io.Ds = sorted([0.0, io.DAW - io.Vp, io.Bundh])[1]
+        #Initial depletion of saturation (Ds, mm)
+        io.Ds = sorted([0.0, io.DAW - io.Vs, io.DAW])[1]
+        #Initial root zone depletion (Dr, mm) - FAO-56 Eq. 87
+        io.Dr = sorted([0.0, io.TAW - io.Vr, io.TAW])[1]
 
-        io.DP = sorted([0.0, io.Vs + io.Vp, io.Ksat])[1]
+        io.DP = sorted([0.0, io.Vs + io.Vp, Kini])[1]
 
         #Initial puddle depletion fraction (fDr, mm/mm)
         io.fDr = 1.0 - ((io.TAW - io.Dr) / io.TAW)
+        io.fDs = 1.0 - ((io.DAW - io.Dr) / io.DAW)
 
         self.odata = pd.DataFrame(columns=self.cnames)
 
@@ -286,7 +296,8 @@ class Landprep:
 
             if io.i < io.Lprp - io.Puddays:
                 io.idep = io.Ds + io.Dr
-            elif io.Vp < io.Wdpud:
+            # During puddling irrigate when WD 0, refill to desired level defined in Wdpud
+            elif io.Vp == 0: 
                 io.idep = io.Ds + io.Dr + io.Wdpud
 
             #Advance timestep
@@ -298,12 +309,16 @@ class Landprep:
             dow = tcurrent.strftime('%a') #Day of Week
             dat = tcurrent.strftime('%Y-%m-%d') #Date yyyy-mm-dd
 
-            data = [ dat, year, doy, dow, str(io.i), io.ETref, io.ETc,
-                    io.ETcadj, io.Kcmax, io.fw, io.E, io.K, io.Kr, io.De, io.DPe,
-                    io.idep, io.irrloss, io.rain, io.runoff, io.DP, io.TAW,
-                    io.DAW, io.Veff, io.Vp, io.Vs, io.Vr, io.Ds, io.Dr,
-                    io.fDr, io.fDs, io.theta0 ]
-
+            data = [
+                dat, year, doy, dow, str(io.i),
+                io.ETref, io.ETc, io.ETcadj, io.T, io.E,
+                io.p, io.Ks, io.h, io.Zr, io.fc,
+                io.tKcb, io.Kcb, io.Kcmax, io.Kc, io.Kcadj, io.Ke, io.Kr,
+                io.fw, io.few, io.De, io.DPe,
+                io.idep, io.irrloss, io.rain, io.runoff,
+                io.DP, io.TAW, io.DAW, io.RAW, io.Veff, io.Vp, io.Vs, io.Vr,
+                io.Ds, io.Dr, io.fDr, io.fDs, io.theta0, io.Se, io.K
+            ]
             self.odata.loc[mykey] = data
 
             tcurrent = tcurrent + tdelta
@@ -317,19 +332,18 @@ class Landprep:
             'ETc': sum(self.odata['ETc']),
             'ETcadj': sum(self.odata['ETcadj']),
             'E': sum(self.odata['E']),
-            'T': 0,
+            'T': sum(self.odata['T']),
             'DP': sum(self.odata['DP']),
             'K': self.odata['K'].mean(),  # Mean of Hydraulic konductivity
             'Rain': sum(self.odata['Rain']),
             'Runoff': sum(self.odata['Runoff']),
             'Irrig': sum(self.odata['Irrig']),
-            'IrrLoss': sum(self.odata['IrrLoss']),
-            'Gross_Irrig': sum(self.odata['Irrig'] + self.odata['IrrLoss']),
+            'IrrLoss': sum(self.odata['Irrig'] *  (100 - io.ieff)/100),
+            # 'Gross_Irrig': sum(self.odata['Irrig'] + self.odata['Irrig'] * (100 - io.ieff)/100),
+            'Gross_Irrig': sum(self.odata['Irrig'] + self.odata['Irrig'] * 0.3),
             'Num_Irrig': len(self.odata[self.odata['Irrig'] > 0]),  # Count of non-zero irrigation values
             'Mean_Irrig': self.odata[self.odata['Irrig'] > 0]['Irrig'].mean(),  # Mean of non-zero irrigation values
-            'Dr_ini': self.odata.loc[sdoy, 'Dr'],
-            'Dr_end': self.odata.loc[edoy, 'Dr'],
-            'Veff_ini': self.odata.loc[sdoy, 'Veff'],
+            'Veff_ini': 1000 * (self.par.theta0 - io.thetaWP) * io.Zp,
             'Veff_end': self.odata.loc[edoy, 'Veff'],
             # New additions
         }
@@ -348,7 +362,8 @@ class Landprep:
         #Effective precipitation (mm)
         effrain = max(0, io.rain - io.runoff)
         
-        io.K = sorted([io.Ksat**0.33, 
+        # K (mm/day); based on Gerardos code
+        io.K = sorted([io.Ksat**0.33,  # this needs to be confirmed with literature
                         io.Ksat * math.exp(io.lamb * (io.i + 1 - io.Lprp + io.Puddays)), 
                         io.Ksat])[1]
 
@@ -358,22 +373,20 @@ class Landprep:
         u2 = sorted([1.0,u2,6.0])[1]
         rhmin = sorted([20.0,io.rhmin,80.0])[1]
 
-        io.Kcmax = 1.2+(0.04*(u2-2.0)-0.004*(rhmin-45.0))* (io.h/3.0)**.3
+        io.Kcmax = 1.2+(0.04*(u2-2.0)-0.004*(rhmin-45.0)) * (io.h/3.0)**.3
+        #Exposed & wetted soil fraction (few, 0.01-1.0) - FAO-56 Eq. 75
+        io.few = sorted([0.01,min([1.0-io.fc, io.fw]),1.0])[1]
 
-        if io.Dr == 0:
-            io.Kr = 1.0
-        else:
-            #Evaporation reduction coefficient (Kr, 0-1) - FAO-56 Eq. 74
+        #Evaporation reduction coefficient (Kr, 0-1) - FAO-56 Eq. 74
+        # NOTE: The assumption is that soil stays wetted throughout the puddling process
+        io.Kr = 1.0 
+        if io.Dr > 0:
             io.Kr = sorted([0.0,(io.TEW-io.De)/(io.TEW-io.REW),1.0])[1]
 
+        io.Ke = min([io.Kr*(io.Kcmax-io.Kcb), io.few*io.Kcmax])
+
         #Soil water evaporation (E, mm) - FAO-56 Eq. 69
-        io.E = io.Kcmax * io.ETref
-
-        io.ETc = io.E 
-        io.ETcadj = io.E
-
-        # NOTE: DPe is used for De and De is used for Kr further up. They
-        # reference eachother!
+        io.E = io.Ke * io.ETref
 
         #Deep percolation under exposed soil (DPe, mm) - FAO-56 Eq. 79
         DPe = effrain + effirr/io.fw - io.De
@@ -382,6 +395,22 @@ class Landprep:
         #Cumulative depth of evaporation (De, mm) - FAO-56 Eqs. 77 & 78
         De = io.De - effrain - effirr/io.fw + io.E/io.fw + io.DPe
         io.De = sorted([0.0,De,io.TEW])[1]
+
+        #Crop coefficient (Kc) - FAO-56 Eq. 69
+        io.Kc = io.Ke + io.Kcb
+
+        #Non-stressed crop evapotranspiration (ETc, mm) - FAO-56 Eq. 69
+        io.ETc = io.Kc * io.ETref
+
+        #Adjusted crop coefficient (Kcadj) - FAO-56 Eq. 80
+        io.Kcadj = io.Ks * io.Kcb + io.Ke
+
+        #Adjusted crop evapotranspiration (ETcadj, mm) - FAO-56 Eq. 80
+        io.ETcadj = io.Kcadj * io.ETref
+
+        #Adjusted crop transpiration (T, mm)
+        io.T = (io.Ks * io.Kcb) * io.ETref
+
 
         Veff = io.Veff + effrain + effirr - io.E - io.DP
         io.Veff = max([Veff, 0.0])
@@ -394,7 +423,7 @@ class Landprep:
         io.Vr = sorted([0.0, io.Veff - io.Vp - io.Vs, io.TAW])[1]
 
         # Deep percolation: If drainable water available
-        io.DP = sorted([0.0, io.Vs, io.K])[1]
+        io.DP = sorted([0.0, io.Vs + io.Vp, io.K])[1]
 
         #Root zone saturated soil water depletion (Ds,mm)
         io.Ds = max(0.0, io.DAW - io.Vs)
@@ -407,4 +436,4 @@ class Landprep:
         #Saturation zone soil water depletion fraction (fDr, mm/mm)
         io.fDs = 1.0 - ((io.DAW - io.Ds) / io.DAW)
 
-        io.theta0 = io.Veff / (1000 * io.Zp) + io.thetaWP
+        io.theta0 = io.Veff / (1000*io.Zp) + io.thetaWP

@@ -149,29 +149,14 @@ class Model:
             f.write(self.__str__())
             f.close()
 
-    def savecsv(self, filepath='pyfao56_summary.csv'):
-        keys = [ 'Date', 'DOY', 'Day', 'ETref', 'ETc', 'ETcadj', 'E', 'T',
-                'DP', 'Irrig', 'IrrLoss', 'Rain', 'Runoff', 'TAW', 'DAW',
-                'RAW', 'Veff', 'Vp', 'Vs', 'Vr', 'Ds', 'Dr', 'fDr', 'fDs' ]
-
-        # Ensure the keys are in the odata columns
-        valid_keys = [key for key in keys if key in self.odata.columns]
-        
-        if not valid_keys:
-            print('No valid keys to save in summary. Please check odata.')
-            return
-
-        # Create a new DataFrame with the selected keys
-        summary_df = self.odata[valid_keys]
-        summary_df = summary_df.round(4)
-
+    def savecsv(self, filepath='pyfao56.csv'):
         try:
-            # Save to CSV
-            summary_df.to_csv(filepath, index=False)
-            print(f"Summary successfully saved to {filepath}")
+            f = open(filepath, 'w')
         except FileNotFoundError:
-            print('The filepath for the summary data is not found.')
-
+            print('The filepath for output data is not found.')
+        else:
+            self.odata.to_csv(f)
+            f.close()
 
     def savesums(self, filepath='pyfao56.sum'):
         self.tmstmp = datetime.datetime.now()
@@ -194,9 +179,9 @@ class Model:
         if not self.odata.empty:
             keys = [ 'ETref', 'ETc', 'ETcadj', 'E', 'T', 'DP', 'K', 'Rain',
                     'Runoff', 'Irrig', 'IrrLoss', 'Gross_Irrig', 'Num_Irrig',
-                    'Mean_Irrig', 'Dr_ini', 'Dr_end', 'Veff_ini', 'Veff_end' ]
+                    'Mean_Irrig', 'Veff_ini', 'Veff_end', "theta0"]
             for key in keys:
-                s += '{:8.0f} : {:s}\n'.format(self.swbdata[key],key)
+                s += '{:8.2f} : {:s}\n'.format(self.swbdata[key],key)
 
         try:
             f = open(filepath, 'w')
@@ -217,6 +202,7 @@ class Model:
     def run(self):
         """Initialize model, conduct simulations, update self.odata"""
 
+
         tcurrent = self.startDate
         tdelta = datetime.timedelta(days=1)
 
@@ -236,6 +222,7 @@ class Model:
         io.thetaWP = self.par.thetaWP
         io.theta0  = self.par.theta0
         io.thetaS  = self.par.thetaS
+        io.thetaR  = self.par.thetaR
         io.Wdpud   = self.par.Wdpud
         io.Ksat    = self.par.Ksat
         io.Zrini   = self.par.Zrini
@@ -260,32 +247,30 @@ class Model:
             io.l = 0.50
             io.n = 1.3055
             io.m = 1 - 1/io.n
-            io.thetaR = 0.0971
 
-            io.Se = sorted([0, (io.theta0 - io.thetaWP)/ (io.thetaS - io.thetaWP), 1])[1]
+            io.Se = sorted([0, (io.theta0 - io.thetaR)/ (io.thetaS - io.thetaR), 1])[1]
             io.K = sorted([0, io.Ksat * io.Se**0.5 * (1 - (1 - io.Se**(1/io.m))**io.m)**2, io.Ksat])[1]
+
+            #TAW + DAW, hence the different nomenclature to prevent confusion.
+            io.Veff = 1000 * (io.theta0 - io.thetaWP) * io.Zrini
 
             io.fDs = 0
             io.DAW = 0
-            io.Veff = 0
             io.Vp = 0
             io.Vs = 0
             io.Vr = 0
             io.Ds = 0
-
+            io.DP = 0
 
 
             # --- Initial Rice Settings ---------------------------------
             if self.ponded:
+
                 #Initial root zone drainable available water (DAW, mm)
                 io.DAW = 1000. * (io.thetaS - io.thetaFC) * io.Zrini
 
-                io.DP = 0
-
                 #Initial effective available moisture (Vtot, mm)
                 #NOTE: This accounts for all the water in the paddy and can exceed 
-                #TAW + DAW, hence the different nomenclature to prevent confusion.
-                io.Veff = 1000 * (io.theta0 - io.thetaWP) * io.Zrini
                 # Initial ponding depth (Vp, mm)
                 io.Vp = sorted([0.0, io.Veff - io.DAW - io.TAW, io.Bundh])[1]
                 # Initial saturation depth (Vs, mm)
@@ -293,7 +278,13 @@ class Model:
                 # Initial residual soil moisture (Vr, mm)
                 io.Vr = sorted([0.0, io.Veff - io.Vp - io.Vs, io.TAW])[1]
 
-                io.Ds = sorted([0.0, io.DAW - io.Vp, io.Bundh])[1]
+                #Initial depletion of saturation (Ds, mm)
+                io.Ds = sorted([0.0, io.DAW - io.Vs, io.DAW])[1]
+                #Initial root zone depletion (Dr, mm) - FAO-56 Eq. 87
+                io.Dr = sorted([0.0, io.TAW - io.Vr, io.DAW])[1]
+
+                io.DP = sorted([0.0, io.Vs + io.Vp, io.K])[1]
+
                 io.fDs = 1.0 - ((io.DAW - io.Ds) / io.DAW)
 
         #Initial root zone soil water depletion fraction (fDr, mm/mm)
@@ -304,27 +295,10 @@ class Model:
         io.fw = 1.0
         io.wndht  = self.wth.wndht
         io.rfcrp  = self.wth.rfcrp
-        io.ponded = self.ponded
-        io.puddled = self.puddled
         io.roff   = self.roff
         io.cons_p = self.cons_p
         io.aq_Ks  = self.aq_Ks
         self.odata = pd.DataFrame(columns=self.cnames)
-
-        # # Perform land preparation if puddled
-        # if self.puddled:
-        #     print("Starting land preparation phase...")
-
-        #     while io.i <= self.par.Lprp:
-        #         mykey = tcurrent.strftime('%Y-%j')  # Generate key for the current date
-
-        #        self.Landprep(io)  # Run the advance method for land preparation
-
-        #         tcurrent += tdelta  # Update the global simulation date
-        #         io.i += 1  # Increment the day counter
-        #         print(f"Land preparation day {io.i} completed, Date: {tcurrent.strftime('%Y-%m-%d')}")
-
-        #     print("Land preparation phase completed.")
 
         while tcurrent <= self.endDate:
             mykey = tcurrent.strftime('%Y-%j')
@@ -408,6 +382,7 @@ class Model:
                         continue
                     if io.Vp >= self.autoirr.aidata.loc[i,'madVp']:
                         continue
+
                     #Evaluate critical Ks
                     if io.Ks >= self.autoirr.aidata.loc[i,'ksc']:
                         continue
@@ -441,10 +416,9 @@ class Model:
                     # rate = max([0.0,io.Dr + io.Ds - reduceirr])
 
 #-------------------------------------------------------------------------
-                    #NOTE: This is not working as desird. Vp gets triggered, but rate 
 
                     wdpth = self.autoirr.aidata.loc[i,'wdpth']
-                    rate = max([0.0, io.Dr + wdpth - reduceirr])
+                    rate = max([0.0, io.Dr + io.Ds + wdpth - reduceirr])
 
                     if io.fDs >= self.autoirr.aidata.loc[i,'madDs']:
                         wdpth = self.autoirr.aidata.loc[i,'wdpth']
@@ -531,11 +505,9 @@ class Model:
             'Gross_Irrig': sum(self.odata['Irrig'] + self.odata['Irrig'] * 0.3),
             'Num_Irrig': len(self.odata[self.odata['Irrig'] > 0]),  # Count of non-zero irrigation values
             'Mean_Irrig': self.odata[self.odata['Irrig'] > 0]['Irrig'].mean(),  # Mean of non-zero irrigation values
-            'Dr_ini': self.odata.loc[sdoy, 'Dr'],
-            'Dr_end': self.odata.loc[edoy, 'Dr'],
-            'Veff_ini': self.odata.loc[sdoy, 'Veff'],
+            'Veff_ini': 1000 * (self.par.theta0 - io.thetaWP) * io.Zrini,
             'Veff_end': self.odata.loc[edoy, 'Veff'],
-            # New additions
+            'theta0': self.odata.loc[edoy, 'theta0'],
         }
 
     def _advance(self, io):
@@ -543,6 +515,14 @@ class Model:
 
         #Basal crop coefficient (Kcb)
         #From FAO-56 Tables 11 and 17
+        u2 = io.wndsp * (4.87/math.log(67.8*io.wndht-5.42))
+        u2 = sorted([1.0,u2,6.0])[1]
+        rhmin = sorted([20.0,io.rhmin,80.0])[1]
+
+        Kcbmid = io.Kcbmid + (0.04*(u2-2.0)-0.004*(rhmin-45.0))*(io.hmax/3.0)**.3
+        # Kcbmid = io.Kcbmid 
+        Kcbend = io.Kcbend + (0.04*(u2-2.0)-0.004*(rhmin-45.0))*(io.hmax/3.0)**.3
+
         s1 = io.Lini
         s2 = s1 + io.Ldev
         s3 = s2 + io.Lmid
@@ -551,19 +531,20 @@ class Model:
             io.tKcb = io.Kcbini
             io.Kcb = io.Kcbini
         elif s1<io.i<=s2:
-            io.tKcb += (io.Kcbmid-io.Kcbini)/(s2-s1)
-            io.Kcb += (io.Kcbmid-io.Kcbini)/(s2-s1)
+            io.tKcb += (Kcbmid-io.Kcbini)/(s2-s1)
+            io.Kcb += (Kcbmid-io.Kcbini)/(s2-s1)
         elif s2<io.i<=s3:
-            io.tKcb = io.Kcbmid
-            io.Kcb = io.Kcbmid
+            io.tKcb = Kcbmid
+            io.Kcb = Kcbmid
         elif s3<io.i<=s4:
-            io.tKcb += (io.Kcbmid-io.Kcbend)/(s3-s4)
-            io.Kcb += (io.Kcbmid-io.Kcbend)/(s3-s4)
+            io.tKcb += (Kcbmid-Kcbend)/(s3-s4)
+            io.Kcb += (Kcbmid-Kcbend)/(s3-s4)
         elif s4<io.i:
-            io.tKcb = io.Kcbend
-            io.Kcb = io.Kcbend
+            io.tKcb = Kcbend
+            io.Kcb = Kcbend
         #Overwrite Kcb if updates are available
         if io.updKcb > 0: io.Kcb = io.updKcb
+        io.Kcb = max([io.Kcbini,io.Kcb])
 
         #Plant height (h, m)
         io.h = max([io.hini+(io.hmax-io.hini)*(io.Kcb-io.Kcbini)/
@@ -576,21 +557,18 @@ class Model:
         # NOTE: This should be double checked with Gerardo
         # ------------------------------------------------
 
+        if io.Zr < io.Zrmax and not self.puddled:
         #Root depth (Zr, m) - FAO-56 page 279; based on Kc <- pyfao original Method
-        # io.Zr = max([io.Zrini + (io.Zrmax-io.Zrini)*(io.tKcb-io.Kcbini)/
-        #              (io.Kcbmid-io.Kcbini),0.001,io.Zr])
-        
+            # io.Zr = max([io.Zrini + (io.Zrmax-io.Zrini)*(io.tKcb-io.Kcbini)/
+            #              (io.Kcbmid-io.Kcbini),0.001,io.Zr])
+
         #Root depth (Zr, m) - FAO-56 page 279; based on DOY <- CROPWAT 8.0 method
-        if io.Zr < io.Zrmax and not io.puddled:
             io.Zr = max([io.Zrini + (io.Zrmax-io.Zrini)*io.i/
                        (io.Lini + io.Ldev),0.001,io.Zr])
         else:
             io.Zr = io.Zrmax
 
         #Upper limit crop coefficient (Kcmax) - FAO-56 Eq. 72
-        u2 = io.wndsp * (4.87/math.log(67.8*io.wndht-5.42))
-        u2 = sorted([1.0,u2,6.0])[1]
-        rhmin = sorted([20.0,io.rhmin,80.0])[1]
         if io.rfcrp == 'S':
             io.Kcmax = max([1.2+(0.04*(u2-2.0)-0.004*(rhmin-45.0))*
                             (io.h/3.0)**.3, io.Kcb+0.05])
@@ -598,8 +576,14 @@ class Model:
             io.Kcmax = max([1.0, io.Kcb + 0.05])
 
         #Canopy cover fraction (fc, 0.0-0.99) - FAO-56 Eq. 76
-        io.fc = sorted([0.0,((io.Kcb-io.Kcbini)/(io.Kcmax-io.Kcbini))**
-                        (1.0+0.5*io.h),0.99])[1]
+        fc = sorted([0.0, ((io.Kcb - io.Kcbini) / (io.Kcmax - io.Kcbini))**(1.0 + 0.5 * io.h), 0.99])[1]
+        if not hasattr(io, 'fc'):
+            io.fc = 0.0  # Initialize with a default value
+
+        # Ensure io.fc does not decrease
+        if fc >= io.fc:
+            io.fc = fc  # Update io.fc only if the new value is greater or equal
+        # Otherwise, io.fc remains unchanged
 
         
         #Overwrite fc if updates are available
@@ -653,10 +637,10 @@ class Model:
         #Exposed & wetted soil fraction (few, 0.01-1.0) - FAO-56 Eq. 75
         io.few = sorted([0.01,min([1.0-io.fc, io.fw]),1.0])[1]
 
-        if io.Dr == 0:
-            io.Kr = 1.0
-        else:
-            #Evaporation reduction coefficient (Kr, 0-1) - FAO-56 Eq. 74
+        #Evaporation reduction coefficient (Kr, 0-1) - FAO-56 Eq. 74
+        io.Kr = 1.0
+        #Kicks in below field capacity
+        if io.Vs == 0.0:
             io.Kr = sorted([0.0,(io.TEW-io.De)/(io.TEW-io.REW),1.0])[1]
 
         #Evaporation coefficient (Ke) - FAO-56 Eq. 71
@@ -682,15 +666,13 @@ class Model:
         #Non-stressed crop evapotranspiration (ETc, mm) - FAO-56 Eq. 69
         io.ETc = io.Kc * io.ETref
 
-        if io.solmthd == 'D':
-            # Total available water (TAW, mm) - FAO-56 Eq. 82
-            io.TAW = 1000.0 * (io.thetaFC - io.thetaWP) * io.Zr
+        # Total available water (TAW, mm) - FAO-56 Eq. 82
+        io.TAW = 1000.0 * (io.thetaFC - io.thetaWP) * io.Zr
 
-            if self.ponded:
-                #Root zone drainable available water (DAW, mm)
-                #For rice the value of p is 0.2 of SATURATION (FAO-56 Table 22, p. 164)
-                io.DAW = 1000. * (io.thetaS - io.thetaFC) * io.Zr
-                io.SAW = io.TAW + io.DAW # 'Saturated Available Water'
+        if self.ponded:
+            #Root zone drainable available water (DAW, mm)
+            #For rice the value of p is 0.2 of SATURATION (FAO-56 Table 22, p. 164)
+            io.DAW = 1000. * (io.thetaS - io.thetaFC) * io.Zr
 
         #Fraction depleted TAW (p, 0.1-0.8) - FAO-56 p162 and Table 22
         if io.cons_p is True:
@@ -699,14 +681,21 @@ class Model:
             io.p = sorted([0.1,io.pbase+0.04*(5.0-io.ETc),0.8])[1]
 
         #Readily available water (RAW, mm) - FAO-56 Equation 83
-        io.RAW = io.p * io.TAW
+        if self.ponded is True:
+            io.RAW = io.p * io.thetaS * 1000 * io.Zr # NOTE: p is frac of SATURATION (thetaS); see footnote 4 in FAO-56 Table 22 
+            SAW = io.DAW + io.TAW
+            Dtot = io.Dr + io.Ds
+        else:
+            io.RAW = io.p * io.TAW
+        
 
 
         #Transpiration reduction factor (Ks, 0.0-1.0)
-        if io.aq_Ks is True and io.ponded is True:
+        if io.aq_Ks is True and self.ponded is True: # This is for Rice
             #Ks method from AquaCrop
-            rSWD = (io.Dr + io.Ds) / io.SAW
-            Drel = (rSWD-io.p)/(1.0-io.p)
+            SAW = io.DAW + io.TAW
+            Dtot = io.Dr + io.Ds
+            Drel = 1.0 - (SAW - Dtot) / (SAW - io.RAW)
             sf = 1.5
             aqKs = 1.0-(math.exp(sf*Drel)-1.0)/(math.exp(sf)-1.0)
             io.Ks = sorted([0.0, aqKs, 1.0])[1]
@@ -717,8 +706,9 @@ class Model:
             sf = 1.5
             aqKs = 1.0-(math.exp(sf*Drel)-1.0)/(math.exp(sf)-1.0)
             io.Ks = sorted([0.0, aqKs, 1.0])[1]
-        elif io.ponded is True:
-            io.Ks = sorted([0.0,(io.SAW-(io.Dr+io.Ds))/((1-io.p)*io.SAW),1.0])[1]
+        elif self.ponded is True:
+            #FAO-56 Eq. 84
+            io.Ks = sorted([0.0,(SAW - Dtot)/(SAW - io.RAW),1.0])[1]
         else:
             #FAO-56 Eq. 84
             io.Ks = sorted([0.0,(io.TAW-io.Dr)/(io.TAW-io.RAW),1.0])[1]
@@ -732,18 +722,19 @@ class Model:
         #Adjusted crop transpiration (T, mm)
         io.T = (io.Ks * io.Kcb) * io.ETref
         
+
+        # Total soil moisture in puddle (Veff, mm)
+        Veff = io.Veff + effrain + effirr - io.ETcadj - io.DP
+        io.Veff = max([Veff, 0.0])
+
         # # Modify Ksat based on vanGenuchten and previous Theta0
         io.theta0 = io.Veff/(1000*io.Zr) + io.thetaWP
-        io.Se = sorted([0, (io.theta0 - io.thetaWP)/ (io.thetaS - io.thetaWP), 1])[1]
+        io.Se = sorted([0, (io.theta0 - io.thetaR)/ (io.thetaS - io.thetaR), 1])[1]
         io.K = sorted([0, io.Ksat * io.Se**0.5 * (1 - (1 - io.Se**(1/io.m))**io.m)**2, io.Ksat])[1]
 
         #Water balance methods
         if io.solmthd == 'D':
             if self.ponded:
-
-                # Total soil moisture in puddle (Veff, mm)
-                Veff = io.Veff + effrain + effirr - io.ETcadj - io.DP
-                io.Veff = max([Veff, 0.0])
 
                 # Ponding depth (Vp, mm)
                 io.Vp = sorted([0.0, io.Veff - io.DAW - io.TAW, io.Bundh])[1]
@@ -777,5 +768,3 @@ class Model:
 
             #Root zone soil water depletion fraction (fDr, mm/mm)
             io.fDr = 1.0 - ((io.TAW - io.Dr) / io.TAW)
-
-            io.theta0 = io.Veff / (1000*io.Zr) + io.thetaWP

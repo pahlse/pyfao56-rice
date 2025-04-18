@@ -1,0 +1,3 @@
+ID,Crop_Type,Year,Season,Planting_Date,Irrig_Crit_Source,Irrig_Crit,ETref,ETc,ETcadj,E,T,DP,K,Rain,Runoff,Irrig,IrrLoss,Gross_Irrig,Num_Irrig,Mean_Irrig,Veff_ini,Veff_end,theta0
+0,Rice,2017,135,2017-06-11,madVp,10.0,665.98,695.62,691.73,311.582,380.148,5004.284,0.0,399.23,0.0,5257.344,0.0,6834.548,50,105.147,18.874,0,0.154
+1,Wheat,2017,125,2017-11-03,mad,0.4,414.97,289.218,140.954,0.0,140.954,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0,,18.874,0,0.154

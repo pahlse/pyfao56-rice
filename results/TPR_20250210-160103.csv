@@ -1,0 +1,2 @@
+timestamp,Year,Season,Transplanting_Date,Irrig_Crit_Source,Irrig_Crit,ETref,ETc,ETcadj,E,T,DP,K,Rain,Runoff,Irrig,IrrLoss,Gross_Irrig,Num_Irrig,Mean_Irrig,Veff_ini,Veff_end
+2025-02-10 16:01:03,2017,120,2017-07-01,madDs,0.75,595.68,636.66,635.58,297.16,338.42,312.01,2.66,382.82,0.0,621.02,0.0,807.32,6,103.5,0.0,56.25
