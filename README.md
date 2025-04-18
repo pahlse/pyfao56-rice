@@ -1,30 +1,27 @@
-# pyfao56 Adaptations for Paddy Fields
+# pyfao56 Adaptations for Paddy Rice
 
 Author: Elias Pahls\
 Date:   18/04/2025
 
-This repository contains a fork of the `pyfao56` package that was developed
-in the scope of my MSc [thesis](./docs/MSc.Thesis.Elias.Pahls.Modeling.FAO56.IRRI.India-compact.pdf) at Wageningen University, The Netherlands. The
-specific objectives were to adapt the original FAO56 methodology to paddy and
-direct-seeded rice conditions based on CROPWAT 8.0 and  [van Genuchten et al. (1980)](./docs/vanGenuchten1980.pdf).[^1] 
-Details on the concepts and methods used can be found in Sections 2.2 and 3.2 of
-the thesis.
-
 ## TL-DR
 
-This package expands on the `pyfao56` package
-([kthorp/pyfao56](https://github.com/kthorp/pyfao56)) by implementing most of
-the original CROPWAT 8.0 functionalities for paddy conditions and expandes the
-original FAO56 methodology by parameterizing hydraulic conductivity `K` based
-on van Genuchten et al. (1980)[^1]. The main additions are:
+This repository contains a fork of the `pyfao56` package ([kthorp/pyfao56](https://github.com/kthorp/pyfao56)) developed
+in the scope of my [MSc thesis](./docs/MSc.Thesis.Elias.Pahls.Modeling.FAO56.IRRI.India-compact.pdf) at Wageningen University, The Netherlands. The
+specific objectives were to adapt the original FAO56 methodology to low-land
+paddy and direct-seeded rice conditions based on additional CROPWAT 8.0
+functionalities and  [van Genuchten's (1980)](./docs/vanGenuchten1980.pdf)[^1]
+closed-form equation for predicting the hydraulic conductivity (`K`) of
+unsaturated soils. Details on the concepts and methods used can be found in
+Sections 2.2 and 3.2 of the thesis. The main additions are:
 
 - Daily water balance calculation based on all water in the paddy (surface,
   saturation, root-zone) represented by `Veff`
 - Deep percolation based on variable `K` and van Genuchten soil parameters.
 - User-definable landpreparation stage in `landprep.py` to calculate water
-  requirments for land preparation and establish initial water balance 
+  requirments for land preparation, modify initial `Ksat` and initiate soil
+  water content.
 
-A 'working' example can be found in `main.py` to showcase the adaptations.
+'Working' examples can be found in `main-TPR.py` and `main-DSR.py` to showcase the adaptations.
 
 ## Pending Tasks
 
